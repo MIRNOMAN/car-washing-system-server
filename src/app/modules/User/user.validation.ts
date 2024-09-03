@@ -1,14 +1,19 @@
 import { z } from 'zod';
 
-const userSchema = z.object({
-  name: z.string().nonempty('Full name is required'),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters long'),
-  phone: z.string().regex(/^[0-9]{10}$/, 'Phone number must be 10 digits'),
-  role: z.enum(['admin', 'user']),
-  address: z.string().nonempty('Address is required'),
+const userValidationSchema = z.object({
+  pasword: z
+    .string({
+      invalid_type_error: 'Password must be string',
+    })
+    .max(20, { message: 'Password can not be more than 20 characters' })
+    .optional(),
 });
 
+// // const changeStatusValidationSchema = z.object({
+// //   body: z.object({
+// //     status: z.enum([...UserStatus] as [string, ...string[]]),
+// //   }),
+// // });
 export const UserValidation = {
-  userSchema,
+  userValidationSchema,
 };

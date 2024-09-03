@@ -4,13 +4,8 @@ import { UserServices } from './user.service';
 import { catchAsync } from '../../utils/catchAsync';
 
 const createUser = catchAsync(async (req, res) => {
-  const { password, student: studentData } = req.body;
-
-  const result = await UserServices.createRegisterUserIntoDB(
-    // req.file,
-    password,
-    studentData,
-  );
+  const userData = req.body;
+  const result = await UserServices.createUserIntoDB(userData);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -19,3 +14,7 @@ const createUser = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
+export const UserControllers = {
+  createUser,
+};

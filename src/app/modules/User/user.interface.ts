@@ -9,6 +9,8 @@ export type TUser = {
   phone: string;
   role: 'admin' | 'user';
   address: string;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 export interface UserModel extends Model<TUser> {
