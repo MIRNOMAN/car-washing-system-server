@@ -1,4 +1,3 @@
-import { Request, Response } from 'express';
 import {
   getAllServiceFromDB,
   getServiceById,
@@ -6,10 +5,11 @@ import {
   updateServiceById,
 } from './service.service';
 import { createServiceSchema, updateServiceSchema } from './service.validation';
+import { catchAsync } from '../../utils/catchAsync';
 
 const serviceService = new ServiceService();
 
-export const createService = async (req: Request, res: Response) => {
+export const createService = catchAsync(async (req, res) => {
   try {
     const validatedData = createServiceSchema.parse(req.body);
     const service = await serviceService.createService(validatedData);
@@ -27,9 +27,9 @@ export const createService = async (req: Request, res: Response) => {
       message: error instanceof Error ? error.message : 'Validation error',
     });
   }
-};
+});
 
-export const getServiceController = async (req: Request, res: Response) => {
+export const getServiceController = catchAsync(async (req, res) => {
   const { id } = req.params;
   const service = await getServiceById(id);
 
@@ -39,9 +39,9 @@ export const getServiceController = async (req: Request, res: Response) => {
     message: 'Service retrieved successfully',
     data: service,
   });
-};
+});
 
-export const getAllServices = async (req: Request, res: Response) => {
+export const getAllServices = catchAsync(async (req, res) => {
   const searchTerm = req.query.searchTerm as string;
   const result = await getAllServiceFromDB(searchTerm);
 
@@ -51,9 +51,9 @@ export const getAllServices = async (req: Request, res: Response) => {
     message: 'Services retrieved successfully',
     data: result,
   });
-};
+});
 
-export const updateServiceController = async (req: Request, res: Response) => {
+export const updateServiceController = catchAsync(async (req, res) => {
   const { id } = req.params;
   const updates = updateServiceSchema.parse(req.body);
 
@@ -69,4 +69,4 @@ export const updateServiceController = async (req: Request, res: Response) => {
     message: 'Service updated successfully',
     data: updatedService,
   });
-};
+});
