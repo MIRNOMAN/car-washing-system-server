@@ -6,6 +6,8 @@ import {
   updateServiceController,
 } from './service.controller';
 import { adminMiddleware, authMiddleware } from './service.adminAuthorization';
+import { updateServiceSchema } from './service.validation';
+import { validateRequest } from '../../middlewares/validateRequest';
 
 const router = express.Router();
 
@@ -14,8 +16,7 @@ router.get('/services/:id', getServiceController);
 router.get('/services', getAllServices);
 router.put(
   '/services/:id',
-  authMiddleware,
-  adminMiddleware,
+  validateRequest(updateServiceSchema),
   updateServiceController,
 );
 
