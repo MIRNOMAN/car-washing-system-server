@@ -3,6 +3,7 @@ import { TService } from './service.interface';
 import { ServiceModel } from './service.model';
 import {
   CreateServiceDTO,
+  DeleteServiceInput,
   UpdateServiceValidation,
 } from './service.validation';
 
@@ -44,4 +45,19 @@ export const updateServiceById = async (
     throw new Error('Service not found');
   }
   return service.toObject();
+};
+
+export const deleteServiceById = async (input: DeleteServiceInput) => {
+  const { id } = input.params;
+
+  const service = await ServiceModel.findById(id);
+
+  if (!service) {
+    throw new Error('Service not found');
+  }
+
+  service.isDeleted = true; // Soft delete
+  await service.save();
+
+  return service;
 };

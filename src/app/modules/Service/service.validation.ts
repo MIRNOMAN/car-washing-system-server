@@ -19,5 +19,12 @@ export const updateServiceSchema = z.object({
   isDeleted: z.boolean().optional(),
 });
 
+export const deleteServiceSchema = z.object({
+  params: z.object({
+    id: z.string().nonempty('Service ID is required'),
+  }),
+});
+
 export type CreateServiceDTO = z.infer<typeof createServiceSchema>;
 export type UpdateServiceValidation = z.infer<typeof updateServiceSchema>;
+export type DeleteServiceInput = z.infer<typeof deleteServiceSchema>;

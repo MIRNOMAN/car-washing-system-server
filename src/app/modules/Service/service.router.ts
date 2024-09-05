@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   createService,
+  deleteServiceController,
   getAllServices,
   getServiceController,
   updateServiceController,
@@ -18,6 +19,12 @@ router.put(
   '/services/:id',
   validateRequest(updateServiceSchema),
   updateServiceController,
+);
+
+router.delete(
+  '/services/:id',
+  validateRequest(updateServiceSchema),
+  deleteServiceController,
 );
 
 export const serviceRoute = router;

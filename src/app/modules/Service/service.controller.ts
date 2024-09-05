@@ -1,10 +1,15 @@
 import {
+  deleteServiceById,
   getAllServiceFromDB,
   getServiceById,
   ServiceService,
   updateServiceById,
 } from './service.service';
-import { createServiceSchema, updateServiceSchema } from './service.validation';
+import {
+  createServiceSchema,
+  deleteServiceSchema,
+  updateServiceSchema,
+} from './service.validation';
 import { catchAsync } from '../../utils/catchAsync';
 
 const serviceService = new ServiceService();
@@ -68,5 +73,20 @@ export const updateServiceController = catchAsync(async (req, res) => {
     statusCode: 200,
     message: 'Service updated successfully',
     data: updatedService,
+  });
+});
+
+export const deleteServiceController = catchAsync(async (req, res) => {
+  const validatedData = deleteServiceSchema.parse({
+    params: req.params,
+  });
+
+  const deleteService = await deleteServiceById(validatedData);
+
+  res.status(200).json({
+    success: true,
+    statusCode: 200,
+    message: 'Service updated successfully',
+    data: deleteService,
   });
 });
