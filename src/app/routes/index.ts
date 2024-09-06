@@ -15,6 +15,10 @@ const moduleRoutes = [
     route: authRoute,
   },
   { path: '', route: serviceRoute },
+  // {
+  //   path: '/services',
+  //   route: slotRoute,
+  // },
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));
