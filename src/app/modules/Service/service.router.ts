@@ -9,26 +9,22 @@ import {
 import { adminMiddleware, authMiddleware } from './service.adminAuthorization';
 import { updateServiceSchema } from './service.validation';
 import { validateRequest } from '../../middlewares/validateRequest';
-import { authenticateAdmin } from '../Slot/slot.adminAuthentication';
-import { createSlotController } from '../Slot/slot.controller';
 
 const router = express.Router();
 
-router.post('/services', authMiddleware, adminMiddleware, createService);
-router.get('/services/:id', getServiceController);
-router.get('/services', getAllServices);
+router.post('/', authMiddleware, adminMiddleware, createService);
+router.get('/:id', getServiceController);
+router.get('/', getAllServices);
 router.put(
-  '/services/:id',
+  '/:id',
   validateRequest(updateServiceSchema),
   updateServiceController,
 );
 
 router.delete(
-  '/services/:id',
+  '/:id',
   validateRequest(updateServiceSchema),
   deleteServiceController,
 );
-
-router.post('/services/slots', authenticateAdmin, createSlotController);
 
 export const serviceRoute = router;

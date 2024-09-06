@@ -16,7 +16,7 @@ const createUserIntoDB = async (payload: TUser) => {
   return savedUser;
 };
 
-const DoingSigninIntoDb = async (payload: TAuth) => {
+const SigninIntoDB = async (payload: TAuth) => {
   // const {email} = payload
   const findUser = await UserModel.findOne(
     { email: payload.email },
@@ -59,5 +59,5 @@ const DoingSigninIntoDb = async (payload: TAuth) => {
 
 export const UserServices = {
   createUserIntoDB,
-  DoingSigninIntoDb,
+  SigninIntoDB,
 };

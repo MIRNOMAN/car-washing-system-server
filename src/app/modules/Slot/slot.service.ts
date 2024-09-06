@@ -1,53 +1,72 @@
-import mongoose from 'mongoose';
-import { serviceValidation } from './slot.validation';
-import { SlotModel } from './slot.model';
+import { TSlot } from './slot.interface';
+import SlotModel from './slot.model';
 
-export const createSlots = async (data: {
-  service: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-}) => {
-  const { service, date, startTime, endTime } = data;
+export const createSlots = async (
+  service: string,
+  date: string,
+  startTime: string,
+  endTime: string,
+  serviceDuration: number,
+): Promise<TSlot[]> => {
+  const start = convertTimeToMinutes(startTime);
+  const end = convertTimeToMinutes(endTime);
+  const totalDuration = end - start;
+  const numberOfSlots = totalDuration / serviceDuration;
 
-  // Validate the data
-  serviceValidation.createSlotSchema.parse(data);
+  const slots: TSlot[] = [];
 
-  // Convert time to minutes
-  const [startHour, startMin] = startTime.split(':').map(Number);
-  const [endHour, endMin] = endTime.split(':').map(Number);
-
-  const startTotalMinutes = startHour * 60 + startMin;
-  const endTotalMinutes = endHour * 60 + endMin;
-  const totalDuration = endTotalMinutes - startTotalMinutes;
-  const slotDuration = 60;
-
-  if (totalDuration % slotDuration !== 0) {
-    throw new Error('Invalid time range');
-  }
-
-  const numberOfSlots = totalDuration / slotDuration;
-
-  const slots = [];
   for (let i = 0; i < numberOfSlots; i++) {
-    const slotStartMinutes = startTotalMinutes + i * slotDuration;
-    const slotEndMinutes = slotStartMinutes + slotDuration;
+    const slotStartTime = convertMinutesToTime(start + i * serviceDuration);
+    const slotEndTime = convertMinutesToTime(start + (i + 1) * serviceDuration);
 
-    const slotStartTime = `${String(Math.floor(slotStartMinutes / 60)).padStart(2, '0')}:${String(
-      slotStartMinutes % 60,
-    ).padStart(2, '0')}`;
-    const slotEndTime = `${String(Math.floor(slotEndMinutes / 60)).padStart(2, '0')}:${String(
-      slotEndMinutes % 60,
-    ).padStart(2, '0')}`;
-
-    slots.push({
-      service: new mongoose.Types.ObjectId(service),
-      date: new Date(date),
+    const newSlot = new SlotModel({
+      service,
+      date,
       startTime: slotStartTime,
       endTime: slotEndTime,
+      isBooked: 'available',
     });
+
+    const savedSlot = await newSlot.save();
+    slots.push(savedSlot);
   }
 
-  const createdSlots = await SlotModel.insertMany(slots);
-  return createdSlots;
+  return slots;
+};
+
+const convertTimeToMinutes = (time: string): number => {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+const convertMinutesToTime = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60)
+    .toString()
+    .padStart(2, '0');
+  const mins = (minutes % 60).toString().padStart(2, '0');
+  return `${hours}:${mins}`;
+};
+
+const getSlotsByDateAndServiceId = async ({
+  service,
+  date,
+}: {
+  service?: string;
+  date?: string;
+}) => {
+  const query: { service?: string; date?: Date } = {}; // Use 'date' here
+  if (service) {
+    query.service = service;
+  }
+  if (date) {
+    query.date = new Date(date); // Convert date string to Date object
+  }
+
+  const result = await SlotModel.find(query).populate('service');
+  return result;
+};
+
+export const SlotServices = {
+  createSlots,
+  getSlotsByDateAndServiceId,
 };

@@ -5,6 +5,10 @@ export type TService = {
   price: number;
   duration: number; // Duration in minutes
   isDeleted: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
+};
+
+export type DeleteServiceInput = {
+  params: {
+    id: string;
+  };
 };

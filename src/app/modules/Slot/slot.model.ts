@@ -1,24 +1,23 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import { model, Schema } from 'mongoose';
+import { TSlot } from './slot.interface';
 
-export interface SlotDocument extends Document {
-  service: mongoose.Types.ObjectId;
-  date: Date;
-  startTime: string;
-  endTime: string;
-  isBooked: 'available' | 'booked';
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const SlotSchema: Schema = new Schema(
+const slotSchema = new Schema<TSlot>(
   {
-    service: { type: mongoose.Types.ObjectId, ref: 'Service', required: true },
+    service: { type: Schema.Types.ObjectId, ref: 'Service', required: true },
     date: { type: Date, required: true },
     startTime: { type: String, required: true },
     endTime: { type: String, required: true },
-    isBooked: { type: String, default: 'available' },
+    isBooked: {
+      type: String,
+      enum: ['available', 'booked', 'canceled'],
+      default: 'available',
+      required: true,
+    },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+  },
 );
 
-export const SlotModel = mongoose.model<SlotDocument>('Slot', SlotSchema);
+const SlotModel = model<TSlot>('slot', slotSchema);
+export default SlotModel;

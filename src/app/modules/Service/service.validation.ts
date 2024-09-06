@@ -5,7 +5,7 @@ export const createServiceSchema = z.object({
   description: z.string().min(1, 'Service description is required'),
   price: z.number().positive('Price must be a positive number'),
   duration: z.number().positive('Duration must be a positive number'),
-  isDeleted: z.boolean().default(false),
+  isDeleted: z.boolean(),
 });
 
 export const updateServiceSchema = z.object({
@@ -24,7 +24,3 @@ export const deleteServiceSchema = z.object({
     id: z.string().nonempty('Service ID is required'),
   }),
 });
-
-export type CreateServiceDTO = z.infer<typeof createServiceSchema>;
-export type UpdateServiceValidation = z.infer<typeof updateServiceSchema>;
-export type DeleteServiceInput = z.infer<typeof deleteServiceSchema>;
