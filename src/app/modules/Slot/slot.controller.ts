@@ -1,6 +1,6 @@
 import { catchAsync } from '../../utils/catchAsync';
-import { GetSlotQuery } from './slot.interface';
 import { SlotServices } from './slot.service';
+import { serviceValidation } from './slot.validation';
 
 const createSlotController = catchAsync(async (req, res) => {
   const { service, date, startTime, endTime } = req.body;
@@ -21,28 +21,28 @@ const createSlotController = catchAsync(async (req, res) => {
 });
 
 const getSlotControllers = catchAsync(async (req, res) => {
-  try {
-    const { serviceId, date } = req.query;
+  // Validate query params
+  const { date, serviceId } =
+    serviceValidation.getAvailableSlotsQuerySchema.parse(req.query);
 
-    const slots = await SlotServices.getSlotsByDateAndServiceId({
-      service: serviceId,
-      date,
+  const slots = await SlotServices.getSlotsByDateAndServiceId({
+    service: serviceId,
+    date,
+  });
+  if (slots.length === 0) {
+    return res.status(404).json({
+      success: false,
+      statusCode: 404,
+      message: 'No Data Found',
+      data: [],
     });
-    if (slots.length === 0) {
-      return res.status(404).json({
-        success: false,
-        statusCode: 404,
-        message: 'No Data Found',
-        data: [],
-      });
-    } else {
-      return res.status(200).json({
-        success: true,
-        statusCode: 200,
-        message: 'Available slots retrieved successfully',
-        data: slots,
-      });
-    }
+  } else {
+    return res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: 'Available slots retrieved successfully',
+      data: slots,
+    });
   }
 });
 

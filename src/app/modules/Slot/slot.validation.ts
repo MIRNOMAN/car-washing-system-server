@@ -7,6 +7,13 @@ const createSlotSchema = z.object({
   endTime: z.string(),
   isBooked: z.enum(['available', 'booked', 'canceled']),
 });
+
+ const getAvailableSlotsQuerySchema = z.object({
+  date: z.string().optional(), 
+  serviceId: z.string().optional(), 
+}); 
+
 export const serviceValidation = {
   createSlotSchema,
+  getAvailableSlotsQuerySchema
 };
