@@ -1,7 +1,7 @@
-import { Types } from 'mongoose';
+import { Schema } from 'mongoose';
 
 export type TSlot = {
-  service: Types.ObjectId;
+  service: Schema.Types.ObjectId;
   date: Date;
   startTime: string;
   endTime: string;

@@ -1,4 +1,4 @@
-import { Document, Schema } from 'mongoose';
+import { Schema } from 'mongoose';
 
 export type VehicleType =
   | 'car'
@@ -25,4 +25,4 @@ export type TBooking = {
   updatedAt: Date; // Timestamp of last update
 };
 
-export interface IBooking extends Document, TBooking {}
+// export interface IBooking extends Document, TBooking {}

@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { IBooking } from './booking.interface';
+import { TBooking } from './booking.interface';
 
 // Define the Booking schema
 const BookingSchema: Schema = new Schema(
@@ -33,6 +33,6 @@ const BookingSchema: Schema = new Schema(
   },
 );
 
-const BookingModel = mongoose.model<IBooking>('Booking', BookingSchema);
+const BookingModel = mongoose.model<TBooking>('Booking', BookingSchema);
 
 export default BookingModel;

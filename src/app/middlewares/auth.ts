@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-unused-vars */
 import { NextFunction, Request, Response } from 'express';
 import httpStatus from 'http-status';
 import jwt, { JwtPayload } from 'jsonwebtoken';
@@ -5,7 +7,7 @@ import { catchAsync } from '../utils/catchAsync';
 import { AppError } from '../error/appError';
 import config from '../config';
 import { TUserRole } from '../modules/User/user.interface';
-import { User } from '../modules/User/user.model';
+import { UserModel } from '../modules/User/user.model';
 
 const auth = (...requiredRoles: TUserRole[]) => {
   return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
@@ -26,20 +28,29 @@ const auth = (...requiredRoles: TUserRole[]) => {
       throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid token!');
     }
 
-    const { role, userId } = decoded;
+    const { name, email, role, phone, address, isDeleted } = decoded;
 
     // checking if the user is exist
-    const user = await User.isUserExistsByCustomId(userId);
+    const user = await UserModel.findOne({ email: email });
 
     if (!user) {
       throw new AppError(httpStatus.NOT_FOUND, 'This user is not found !');
     }
 
-    if (requiredRoles.length && !requiredRoles.includes(role)) {
+    const DeletedUser = user.isDeleted;
+    if (DeletedUser) {
       throw new AppError(
-        httpStatus.UNAUTHORIZED,
-        'You are not authorized  hi!',
+        httpStatus.FORBIDDEN,
+        'This user is no longer deleted',
       );
+    }
+
+    if (requiredRoles && !requiredRoles.includes(role)) {
+      res.status(401).json({
+        success: false,
+        statusCode: 401,
+        message: 'You have no access to this route',
+      });
     }
 
     req.user = decoded as JwtPayload;

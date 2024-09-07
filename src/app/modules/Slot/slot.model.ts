@@ -19,5 +19,5 @@ const slotSchema = new Schema<TSlot>(
   },
 );
 
-const SlotModel = model<TSlot>('slot', slotSchema);
+const SlotModel = model<TSlot>('Slot', slotSchema);
 export default SlotModel;

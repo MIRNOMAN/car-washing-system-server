@@ -1,4 +1,4 @@
-import { Schema } from 'mongoose';
+import { Types } from 'mongoose';
 import { ServiceModel } from '../Service/service.model';
 import SlotModel from '../Slot/slot.model';
 import { UserModel } from '../User/user.model';
@@ -19,24 +19,29 @@ const createBooking = async (booking: {
   const service = await ServiceModel.findById(booking.serviceId);
   const user = await UserModel.findById(booking.user);
 
+  if (!slot || !service || !user) {
+    throw new Error('Slot, service, or user not found');
+  }
+
   if (slot && service && user) {
     const result = await (
-      await BookingModel.create({
-        customer: user._id,
-        service: service._id,
-        slot: slot._id,
-        vehicleType: booking.vehicleType,
-        vehicleBrand: booking.vehicleBrand,
-        vehicleModel: booking.vehicleModel,
-        manufacturingYear: booking.manufacturingYear,
-        registrationPlate: booking.registrationPlate,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-    )
-      .populate('customer')
-      .populate('service')
-      .populate('slot');
+      await (
+        await (
+          await BookingModel.create({
+            customer: user._id,
+            service: service._id,
+            slot: slot._id,
+            vehicleType: booking.vehicleType,
+            vehicleBrand: booking.vehicleBrand,
+            vehicleModel: booking.vehicleModel,
+            manufacturingYear: booking.manufacturingYear,
+            registrationPlate: booking.registrationPlate,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+        ).populate('customer')
+      ).populate('service')
+    ).populate('slot');
 
     // Update the slot status to booked
     await updateSlotBooking([slot._id]);
@@ -47,10 +52,10 @@ const createBooking = async (booking: {
   }
 };
 
-const updateSlotBooking = async (slots: Schema.Types.ObjectId[]) => {
+const updateSlotBooking = async (slots: Types.ObjectId[]) => {
   const result = await SlotModel.updateMany(
     { _id: { $in: slots } },
-    { isBooked: 'booked' },
+    { $set: { isBooked: true } },
   );
   return result;
 };
