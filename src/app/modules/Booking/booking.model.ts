@@ -1,30 +1,38 @@
-import { model, Schema } from 'mongoose';
-import { TBooking } from './booking.interface';
+import mongoose, { Schema } from 'mongoose';
+import { IBooking } from './booking.interface';
 
-const BookingSchema = new Schema<TBooking>({
-  customer: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  service: { type: Schema.Types.ObjectId, ref: 'Service', required: true },
-  slot: { type: Schema.Types.ObjectId, ref: 'Slot', required: true },
-  vehicleType: {
-    type: String,
-    required: true,
-    enum: [
-      'car',
-      'truck',
-      'SUV',
-      'van',
-      'motorcycle',
-      'bus',
-      'electricVehicle',
-      'hybridVehicle',
-      'bicycle',
-      'tractor',
-    ],
+// Define the Booking schema
+const BookingSchema: Schema = new Schema(
+  {
+    customer: { type: Schema.Types.ObjectId, required: true, ref: 'User' }, // Reference to the user
+    service: { type: Schema.Types.ObjectId, required: true, ref: 'Service' }, // Reference to the service
+    slot: { type: Schema.Types.ObjectId, required: true, ref: 'Slot' }, // Reference to the slot
+    vehicleType: {
+      type: String,
+      required: true,
+      enum: [
+        'car',
+        'truck',
+        'SUV',
+        'van',
+        'motorcycle',
+        'bus',
+        'electricVehicle',
+        'hybridVehicle',
+        'bicycle',
+        'tractor',
+      ],
+    },
+    vehicleBrand: { type: String, required: true },
+    vehicleModel: { type: String, required: true },
+    manufacturingYear: { type: Number, required: true },
+    registrationPlate: { type: String, required: true },
   },
-  vehicleBrand: { type: String, required: true },
-  vehicleModel: { type: String, required: true },
-  manufacturingYear: { type: Number, required: true },
-  registrationPlate: { type: String, required: true },
-});
+  {
+    timestamps: true, // This will add createdAt and updatedAt fields
+  },
+);
 
-export const Booking = model<TBooking>('Booking', BookingSchema);
+const BookingModel = mongoose.model<IBooking>('Booking', BookingSchema);
+
+export default BookingModel;
