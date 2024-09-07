@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-unused-vars */
 import { NextFunction, Request, Response } from 'express';
 import httpStatus from 'http-status';
 import jwt, { JwtPayload } from 'jsonwebtoken';
@@ -11,11 +9,18 @@ import { UserModel } from '../modules/User/user.model';
 
 const auth = (...requiredRoles: TUserRole[]) => {
   return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const token = req.headers.authorization?.split(' ')[1];
+    // Check if the authorization header exists
+    if (!req.headers.authorization) {
+      throw new AppError(
+        httpStatus.UNAUTHORIZED,
+        'Authorization header is missing!',
+      );
+    }
 
-    // checking if the token is missing
+    const token = req.headers.authorization.split(' ')[1];
+
     if (!token) {
-      throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized!');
+      throw new AppError(httpStatus.UNAUTHORIZED, 'Token is missing!');
     }
 
     let decoded: JwtPayload;
@@ -24,36 +29,36 @@ const auth = (...requiredRoles: TUserRole[]) => {
         token,
         config.jwt_access_secret as string,
       ) as JwtPayload;
+      // console.log('Decoded JWT:', decoded);
     } catch (err) {
-      throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid token!');
+      // console.error('JWT verification failed:', err);
+      throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid or expired token!');
     }
 
-    const { name, email, role, phone, address, isDeleted } = decoded;
+    const { email } = decoded;
 
-    // checking if the user is exist
-    const user = await UserModel.findOne({ email: email });
+    // Check if the user exists
+    const user = await UserModel.findOne({ email });
 
     if (!user) {
-      throw new AppError(httpStatus.NOT_FOUND, 'This user is not found !');
+      throw new AppError(httpStatus.NOT_FOUND, 'User not found!');
     }
 
-    const DeletedUser = user.isDeleted;
-    if (DeletedUser) {
+    // Check if the user is deleted
+    if (user.isDeleted) {
+      throw new AppError(httpStatus.FORBIDDEN, 'This user has been deleted!');
+    }
+
+    // Check if the user has the required role
+    if (requiredRoles.length && !requiredRoles.includes(user.role)) {
       throw new AppError(
         httpStatus.FORBIDDEN,
-        'This user is no longer deleted',
+        'You do not have access to this route!',
       );
     }
 
-    if (requiredRoles && !requiredRoles.includes(role)) {
-      res.status(401).json({
-        success: false,
-        statusCode: 401,
-        message: 'You have no access to this route',
-      });
-    }
-
-    req.user = decoded as JwtPayload;
+    // Attach the user information to the request
+    req.user = decoded;
     next();
   });
 };
