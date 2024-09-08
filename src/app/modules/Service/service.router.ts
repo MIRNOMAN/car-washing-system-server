@@ -13,7 +13,7 @@ import auth from '../../middlewares/auth';
 
 const router = express.Router();
 
-router.post('/', authMiddleware, adminMiddleware, createService);
+router.post('/', auth('admin'), authMiddleware, adminMiddleware, createService);
 router.get('/:id', getServiceController);
 router.get('/', getAllServices);
 router.put(
