@@ -33,7 +33,7 @@ router.delete(
 );
 
 router.post(
-  '/slots(',
+  '/slots',
   auth('admin'),
   validateRequest(serviceValidation.getAvailableSlotsQuerySchema),
   SlotControllers.createSlotController,

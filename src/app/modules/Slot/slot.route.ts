@@ -12,7 +12,7 @@ const router = express.Router();
 //   SlotControllers.createSlotController,
 // );
 router.get(
-  '/availability',
+  '/slots/availability',
   validateRequest(serviceValidation.getAvailableSlotsQuerySchema),
   SlotControllers.getSlotControllers,
 );

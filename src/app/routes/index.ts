@@ -13,7 +13,7 @@ const moduleRoutes = [
   },
   { path: '/services', route: serviceRoute },
   {
-    path: '/slots',
+    path: '',
     route: slotRoutes,
   },
   {
