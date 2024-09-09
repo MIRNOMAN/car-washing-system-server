@@ -17,3 +17,14 @@
 - Responsive and user-friendly design
 
 ---
+
+## **Technologies Used**
+
+- **Backend:** Node.js, Express.js
+- **Database:** MongoDB
+- **Validation:** Zod for schema validation
+- **Authentication:** JWT (JSON Web Tokens)
+- **Version Control:** Git & GitHub
+- **Deployment:** [My deployment platform Vercel]
+
+---
