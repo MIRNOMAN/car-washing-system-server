@@ -19,4 +19,11 @@ export const handleValidationError = (
     message: 'validation error',
     errorSources,
   };
+
+  // const statusCode = 400;
+  // return {
+  //   statusCode,
+  //   message: 'validation error',
+  //   errorSources,
+  // };
 };
