@@ -83,9 +83,9 @@ const getAllBookings = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void
     }
 }));
 const getMyBookings = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b;
+    var _a;
     try {
-        const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id; // Assuming you have user information from JWT in req.user
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id; // Assuming you have user information from JWT in req.user
         if (!userId) {
             return res.status(401).json({
                 success: false,
