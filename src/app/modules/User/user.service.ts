@@ -196,60 +196,67 @@ const changeUserRoleIntoDb = async (payload: { _id: string; role: string }, next
 
 
 
+const SigninIntoDB = async (payload: TAuth, next: NextFunction) => {
+  try {
+      // Find the user by email and include the password field
+      const user = await UserModel.findOne({ email: payload.email },'-isDeleted').select('+password');
 
+      if (!user) {
+          return {
+              success: false,
+              statusCode: httpStatus.BAD_REQUEST,
+              message: 'The email you provided did not match any accounts',
+              data: null,
+              token: null,
+          };
+      }
 
+      // Verify the password
+      const isPasswordCorrect = await bcrypt.compare(payload.password, user.password);
+      if (!isPasswordCorrect) {
+          return {
+              success: false,
+              statusCode: httpStatus.BAD_REQUEST,
+              message: 'Wrong password',
+              data: null,
+              token: null,
+          };
+      }
 
+      // Create JWT payload
+      const tokenPayload = { user: user.email, role: user.role };
 
+      // Generate access and refresh tokens
+      const accessToken = jwt.sign(tokenPayload, config.jwt_access_secret as string, { expiresIn: '3d' });
+      const refreshToken = jwt.sign(tokenPayload, config.jwt_refresh_secret as string, { expiresIn: '365d' });
 
+      if (!accessToken || !refreshToken) {
+          return {
+              success: false,
+              statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+              message: 'Error generating tokens',
+              data: null,
+              token: null,
+          };
+      }
 
+      // Return user data excluding password
+      const userForClient = await UserModel.findOne({ email: payload.email });
 
-
-
-
-
-
-
-
-const SigninIntoDB = async (payload: TAuth) => {
-  // const {email} = payload
-  const findUser = await UserModel.findOne(
-    { email: payload.email },
-    '-isDeleted',
-  );
-  // console.log(findUser)
-  if (!findUser) {
-    throw new AppError(httpStatus.NOT_FOUND, "Couldn't found the account");
+      return {
+          success: true,
+          statusCode: httpStatus.OK,
+          message: 'User logged in successfully',
+          data: userForClient,
+          accessToken,
+          refreshToken,
+      };
+  } catch (error) {
+      next(error);
   }
-  //  checking if the user already deleted
-
-  const isDeleted = findUser.isDeleted;
-  if (isDeleted) {
-    throw new AppError(httpStatus.FORBIDDEN, 'This account is already deleted');
-  }
-  // checking if the password is correct
-  const isPasswordMatched = await bcrypt.compare(
-    payload.password,
-    findUser.password,
-  );
-  if (!isPasswordMatched) {
-    throw new AppError(httpStatus.NOT_FOUND, "Password doesn't matched");
-  }
-  const { password, ...userWithoutEmail } = findUser.toObject();
-  const jwtPayload = userWithoutEmail;
-
-  const accessToken = createToken(
-    jwtPayload,
-    config.jwt_access_secret as string,
-    '1hr',
-  );
-
-  // const refreshToken = createToken(
-  //   jwtPayload,
-  //   config.secret_access_token as string,
-  //   "1hr"
-  // );
-  return { data: userWithoutEmail, token: accessToken };
 };
+
+
 
 export const UserServices = {
   createUserIntoDB,
