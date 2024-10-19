@@ -9,6 +9,7 @@ import bcrypt from 'bcrypt';
 import { createToken } from './user.utils';
 import { NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import verifyTokenSync from '../../utils/verifyTokenSync';
 
 const createUserIntoDB = async (payload: TUser) => {
   const result = await UserModel.create(payload);
@@ -79,6 +80,49 @@ const getUserForRecoverAccountFormDb = async (email: string, next: NextFunction)
 };
 
 
+
+const recoverAccountFromDb = async (payload: { token: string, newPassword: string }, next: NextFunction) => {
+  try {
+      const decoded = verifyTokenSync(payload.token, config.jwt_access_secret as string);
+
+      if (!decoded || !decoded.email) {
+          return {
+              success: false,
+              message: 'OTP Expired',
+          };
+      }
+
+      const email = decoded.email;
+      const encryptedNewPassword = await bcrypt.hash(payload.newPassword, Number(config.bcrypt_slat_rounds));
+
+      if (!encryptedNewPassword) {
+          return {
+              success: false,
+              message: 'Something went wrong while encrypting the password',
+          };
+      }
+
+      const updateUser = await UserModel.findOneAndUpdate({ email }, { password: encryptedNewPassword });
+
+      if (!updateUser) {
+          return {
+              success: false,
+              message: 'User update failed',
+          };
+      }
+
+      return {
+          success: true,
+          message: 'Account recovered successfully',
+      };
+
+  } catch (error) {
+      next(error);
+  }
+};
+
+
+
 const SigninIntoDB = async (payload: TAuth) => {
   // const {email} = payload
   const findUser = await UserModel.findOne(
@@ -124,5 +168,6 @@ export const UserServices = {
   createUserIntoDB,
   SigninIntoDB,
   getFullUserDataFormDb,
-  getUserForRecoverAccountFormDb
+  getUserForRecoverAccountFormDb,
+  recoverAccountFromDb,
 };
