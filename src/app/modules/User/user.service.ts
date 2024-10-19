@@ -6,7 +6,6 @@ import { AppError } from '../../error/appError';
 import config from '../../config';
 import { UserModel } from './user.model';
 import bcrypt from 'bcrypt';
-import { createToken } from './user.utils';
 import { NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import verifyTokenSync from '../../utils/verifyTokenSync';

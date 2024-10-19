@@ -7,17 +7,20 @@ import config from '../config';
 import { TUserRole } from '../modules/User/user.interface';
 import { UserModel } from '../modules/User/user.model';
 
+
+
+
 const auth = (...requiredRoles: TUserRole[]) => {
   return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     // Check if the authorization header exists
-    if (!req.headers.authorization) {
-      throw new AppError(
-        httpStatus.UNAUTHORIZED,
-        'Authorization header is missing!',
-      );
+    const authHeader = req.headers.authorization;
+
+    // Check if the authorization header exists
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new AppError(httpStatus.UNAUTHORIZED, 'Authorization header is missing or malformed!');
     }
 
-    const token = req.headers.authorization.split(' ')[1];
+    const token = authHeader.split(' ')[1];
 
     if (!token) {
       throw new AppError(httpStatus.UNAUTHORIZED, 'Token is missing!');
@@ -58,7 +61,7 @@ const auth = (...requiredRoles: TUserRole[]) => {
     }
 
     // Attach the user information to the request
-    req.user = decoded;
+    req.user = user;
     next();
   });
 };
