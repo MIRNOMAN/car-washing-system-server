@@ -90,7 +90,27 @@ const recoverAccount = catchAsync(async (req, res,next) => {
 });
 
 
+const getUserForRecoverAccount = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const email = req.query?.email as string;
 
+  const result = await UserServices.getUserForRecoverAccountFormDb(email, next);
+
+  if (result) {
+      sendResponse(res, {
+          statusCode: result.statusCode || httpStatus.OK, // Default to 200 if statusCode is not provided
+          success: result.success,
+          message: result.message,
+          data: result.data || null,
+      });
+  } else {
+      sendResponse(res, {
+          statusCode: httpStatus.NOT_FOUND,
+          success: false,
+          message: 'User not found.',
+          data: null,
+      });
+  }
+});
 
 
 
@@ -113,5 +133,6 @@ export const UserControllers = {
   createUser,
   SignInUser,
   getFullUserObj,
-  recoverAccount
+  recoverAccount,
+  getUserForRecoverAccount
 };
