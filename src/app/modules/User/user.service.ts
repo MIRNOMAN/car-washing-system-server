@@ -7,6 +7,7 @@ import config from '../../config';
 import { UserModel } from './user.model';
 import bcrypt from 'bcrypt';
 import { createToken } from './user.utils';
+import { NextFunction } from 'express';
 
 const createUserIntoDB = async (payload: TUser) => {
   const result = await UserModel.create(payload);
@@ -15,6 +16,24 @@ const createUserIntoDB = async (payload: TUser) => {
     .exec();
   return savedUser;
 };
+
+
+const getFullUserDataFormDb = async (email: string, next: NextFunction) => {
+  try {
+      const user = await UserModel.findOne({ email });
+      if (user) {
+          return {
+              success: true,
+              statusCode: httpStatus.OK,
+              message: 'User retrieved successfully',
+              data: user
+          };
+      }
+  } catch (error) {
+      next(error);
+  }
+};
+
 
 const SigninIntoDB = async (payload: TAuth) => {
   // const {email} = payload
@@ -60,4 +79,5 @@ const SigninIntoDB = async (payload: TAuth) => {
 export const UserServices = {
   createUserIntoDB,
   SigninIntoDB,
+  getFullUserDataFormDb
 };

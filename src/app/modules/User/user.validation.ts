@@ -10,6 +10,15 @@ const userValidationSchema = z.object({
   isDeleted: z.boolean().default(false),
 });
 
+const updateUserValidationSchema = z.object({
+  body: z.object({
+      name: z.string().optional(),
+      address: z.string().optional(),
+      phone: z.string().optional(),
+      password: z.string().optional()
+  })
+});
+
 const AuthValidationSchema = z.object({
   email: z.string().email(),
   password: z.string(),
@@ -18,4 +27,5 @@ const AuthValidationSchema = z.object({
 export const UserValidation = {
   userValidationSchema,
   AuthValidationSchema,
+  updateUserValidationSchema
 };
