@@ -208,6 +208,19 @@ const getRoleBaseUser = catchAsync(async (req: Request, res: Response, next: Nex
 });
 
 
+const changeUserRole = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const result = await UserServices.changeUserRoleIntoDb(req.body, next);
+  
+  // Check if the result is returned
+  if (result) {
+      return sendResponse(res, {
+          statusCode: result.statusCode || 200, // Default to 200 if not provided
+          success: result.success,
+          message: result.message,
+          data: result.data,
+      });
+  }
+});
 
 
 
@@ -230,5 +243,6 @@ export const UserControllers = {
   recoverAccount,
   getUserForRecoverAccount,
   updateSpecificUser,
-  getRoleBaseUser
+  getRoleBaseUser,
+  changeUserRole
 };
