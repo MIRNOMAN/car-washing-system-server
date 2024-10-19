@@ -11,12 +11,10 @@ const userValidationSchema = z.object({
 });
 
 const updateUserValidationSchema = z.object({
-  body: z.object({
       name: z.string().optional(),
       address: z.string().optional(),
       phone: z.string().optional(),
       password: z.string().optional()
-  })
 });
 
 const AuthValidationSchema = z.object({

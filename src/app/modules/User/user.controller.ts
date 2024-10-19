@@ -22,14 +22,23 @@ const createUser = catchAsync(async (req, res) => {
 
 const getFullUserObj = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
-  const email = req?.query?.email as string;
+  const email = req?.query?.email as string; // Extract email from query
 
-  // Check authorization header
+  // Validate email query parameter
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: 'Email query parameter is required.',
+    });
+  }
+
+  // Check if authorization header is present
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({
       success: false,
       statusCode: 401,
-      message: 'Unauthorized access to this route.',
+      message: 'Unauthorized access to this route. Missing or invalid token.',
     });
   }
 
@@ -38,19 +47,20 @@ const getFullUserObj = async (req: Request, res: Response, next: NextFunction) =
   try {
     const decoded = jwt.verify(token, config.jwt_access_secret as string) as JwtPayload;
 
-    // Ensure the token's user matches the requested email
+
+    // Ensure the decoded email matches the email from the query parameter
     if (decoded.email !== email) {
       return res.status(401).json({
         success: false,
         statusCode: 401,
-        message: 'Unauthorized access to this route.',
+        message: 'Unauthorized access to this route. Token does not match the requested email.',
       });
     }
 
     // Fetch the full user data from the database
     const result = await UserServices.getFullUserDataFormDb(email, next);
-    
-    if (result) {
+
+    if (result && result.success) {
       return res.status(result.statusCode).json({
         success: result.success,
         statusCode: result.statusCode,
@@ -62,20 +72,21 @@ const getFullUserObj = async (req: Request, res: Response, next: NextFunction) =
         success: false,
         statusCode: 404,
         message: 'User not found in database.',
+        data: null,
       });
     }
   } catch (error) {
+    // Handle JWT errors specifically
     if (error instanceof jwt.JsonWebTokenError) {
       return res.status(401).json({
         success: false,
         statusCode: 401,
-        message: 'Invalid token, access denied.',
+        message: 'Unauthorized access. Invalid token.',
       });
     }
-    next(error);
+    next(error); // Forward other errors to the error handler
   }
 };
-
 
 const recoverAccount = catchAsync(async (req, res,next) => {
   const userData = req.body; // Assuming this contains the necessary data for account recovery
@@ -115,68 +126,81 @@ const getUserForRecoverAccount = catchAsync(async (req: Request, res: Response, 
 
 
 const updateSpecificUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-  const { email } = req.query;
-
-  // Check if the role or email is being changed
-  if (req.body.role || req.body.email) {
+  try {
+    const authHeader = req.headers.authorization;
+    const { email } = req.query; // Extract email from query parameters
+   
+    // Ensure email is provided in the query
+    if (!email) {
       return sendResponse(res, {
-          statusCode: httpStatus.FORBIDDEN,
-          success: false,
-          message: 'Role and email cannot be changed. Contact admin if it is important.',
-          data: null,
+        statusCode: httpStatus.BAD_REQUEST,
+        success: false,
+        message: 'Email is required to update the user.',
+        data: null,
       });
-  }
+    }
 
-  // Validate the authorization header
-  if (!authHeader || !authHeader.startsWith('Bearer')) {
+    // Validate the authorization header
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return sendResponse(res, {
-          statusCode: httpStatus.UNAUTHORIZED,
-          success: false,
-          message: 'You have no access to this route.',
-          data: null,
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: 'You have no access to this route. Missing or invalid token.',
+        data: null,
       });
+    }
+
+    const token = authHeader.split(' ')[1]; // Extract the token part
+    let decoded;
+    
+    // Verify the JWT token and catch any token-related errors
+    try {
+      decoded = jwt.verify(token, config.jwt_access_secret as string) as JwtPayload;
+    } catch (error) {
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: 'Invalid token.',
+        data: null,
+      });
+    }
+
+    // Ensure the decoded token has the correct user email
+    if (decoded.user !== email) {
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: 'You have no access to this route. Token does not match email.',
+        data: null,
+      });
+    }
+
+    // Check if the role or email is being changed
+    if (req.body.role || req.body.email) {
+      return sendResponse(res, {
+        statusCode: httpStatus.FORBIDDEN,
+        success: false,
+        message: 'Role and email cannot be changed. Contact admin if it is important.',
+        data: null,
+      });
+    }
+
+    // Update the user in the database
+    const result = await UserServices.updateSpecificUserIntoDb(req.body, email as string, next);
+
+    if (result) {
+      return sendResponse(res, {
+        statusCode: result.statusCode || httpStatus.OK,
+        success: result.success,
+        message: result.message,
+        data: result.data,
+      });
+    }
+  } catch (error) {
+    next(error); // Forward any other errors to the error handler
   }
-
-  const extractToken = authHeader.slice(7);
-
-  // Verify the JWT token
-  jwt.verify(extractToken, config.jwt_access_secret as string, async (err, decoded) => {
-      if (err) {
-          return sendResponse(res, {
-              statusCode: httpStatus.UNAUTHORIZED,
-              success: false,
-              message: 'You have no access to this route.',
-              data: null,
-          });
-      } else {
-          // Check if the decoded user matches the email being updated
-          if ((decoded as JwtPayload).user !== email) {
-              return sendResponse(res, {
-                  statusCode: httpStatus.UNAUTHORIZED,
-                  success: false,
-                  message: 'You have no access to this route.',
-                  data: null,
-              });
-          } else {
-              try {
-                  // Call the service to update the user
-                  const result = await UserServices.updateSpecificUserIntoDb(req.body, email as string, next);
-                  if (result) {
-                      return sendResponse(res, {
-                          statusCode: result.statusCode || httpStatus.OK,
-                          success: result.success,
-                          message: result.message,
-                          data: result.data,
-                      });
-                  }
-              } catch (error) {
-                  next(error);
-              }
-          }
-      }
-  });
 });
+
 
 
 const getRoleBaseUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {

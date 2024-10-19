@@ -84,14 +84,14 @@ const recoverAccountFromDb = async (payload: { token: string, newPassword: strin
   try {
       const decoded = verifyTokenSync(payload.token, config.jwt_access_secret as string);
 
-      if (!decoded || !decoded.email) {
+      if (!decoded || !decoded.user) {
           return {
               success: false,
               message: 'OTP Expired',
           };
       }
 
-      const email = decoded.email;
+      const email = decoded.user;
       const encryptedNewPassword = await bcrypt.hash(payload.newPassword, Number(config.bcrypt_slat_rounds));
 
       if (!encryptedNewPassword) {
@@ -101,8 +101,8 @@ const recoverAccountFromDb = async (payload: { token: string, newPassword: strin
           };
       }
 
-      const updateUser = await UserModel.findOneAndUpdate({ email }, { password: encryptedNewPassword });
-
+      const updateUser = await UserModel.findOneAndUpdate({ email }, { password: encryptedNewPassword },{ new: true });
+  
       if (!updateUser) {
           return {
               success: false,
@@ -148,6 +148,7 @@ const updateSpecificUserIntoDb = async (payload: Partial<TUser>, email: string, 
 
 const getRoleBaseUserFormDb = async (role: string, next: NextFunction) => {
   try {
+
       const users = await UserModel.find({ role });
 
       if (users.length > 0) {
