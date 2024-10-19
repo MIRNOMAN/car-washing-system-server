@@ -122,6 +122,30 @@ const recoverAccountFromDb = async (payload: { token: string, newPassword: strin
 };
 
 
+const updateSpecificUserIntoDb = async (payload: Partial<TUser>, email: string, next: NextFunction) => {
+  try {
+      const updatedUser = await UserModel.findOneAndUpdate({ email }, payload, { new: true });
+
+      if (updatedUser) {
+          return {
+              success: true,
+              statusCode: httpStatus.OK,
+              message: 'User updated successfully',
+              data: updatedUser,
+          };
+      } else {
+          return {
+              success: false,
+              statusCode: httpStatus.NOT_FOUND,
+              message: 'User not found',
+          };
+      }
+  } catch (error) {
+      next(error);
+  }
+};
+
+
 
 const SigninIntoDB = async (payload: TAuth) => {
   // const {email} = payload
@@ -170,4 +194,5 @@ export const UserServices = {
   getFullUserDataFormDb,
   getUserForRecoverAccountFormDb,
   recoverAccountFromDb,
+  updateSpecificUserIntoDb
 };
