@@ -76,6 +76,28 @@ const getFullUserObj = async (req: Request, res: Response, next: NextFunction) =
   }
 };
 
+
+const recoverAccount = catchAsync(async (req, res,next) => {
+  const userData = req.body; // Assuming this contains the necessary data for account recovery
+  const result = await UserServices.recoverAccountFromDb(userData, next);
+
+  sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Account recovery successful',
+      data: result,
+  });
+});
+
+
+
+
+
+
+
+
+
+
 const SignInUser = catchAsync(async (req, res) => {
   const result = await UserServices.SigninIntoDB(req.body);
   sendResponseWithToken(res, {
@@ -91,4 +113,5 @@ export const UserControllers = {
   createUser,
   SignInUser,
   getFullUserObj,
+  recoverAccount
 };
