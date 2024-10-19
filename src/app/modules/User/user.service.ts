@@ -8,6 +8,7 @@ import { UserModel } from './user.model';
 import bcrypt from 'bcrypt';
 import { createToken } from './user.utils';
 import { NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 
 const createUserIntoDB = async (payload: TUser) => {
   const result = await UserModel.create(payload);
@@ -27,6 +28,49 @@ const getFullUserDataFormDb = async (email: string, next: NextFunction) => {
               statusCode: httpStatus.OK,
               message: 'User retrieved successfully',
               data: user
+          };
+      }
+  } catch (error) {
+      next(error);
+  }
+};
+
+
+
+const getUserForRecoverAccountFormDb = async (email: string, next: NextFunction) => {
+  try {
+      const user: TUser | null = await UserModel.findOne({ email });
+
+      if (user) {
+          const token = jwt.sign({ email: user.email }, config.jwt_access_secret as string, { expiresIn: '15m' });
+
+          if (!token) {
+              return {
+                  success: false,
+                  statusCode: httpStatus.OK,
+                  message: 'Something went wrong',
+                  data: []
+              };
+          }
+
+          const resBody = {
+              name: user.name,
+              email: user.email,
+              token,
+          };
+
+          return {
+              success: true,
+              statusCode: httpStatus.OK,
+              message: 'User retrieved successfully',
+              data: resBody
+          };
+      } else {
+          return {
+              success: false,
+              statusCode: httpStatus.OK,
+              message: 'User not found',
+              data: []
           };
       }
   } catch (error) {
@@ -79,5 +123,6 @@ const SigninIntoDB = async (payload: TAuth) => {
 export const UserServices = {
   createUserIntoDB,
   SigninIntoDB,
-  getFullUserDataFormDb
+  getFullUserDataFormDb,
+  getUserForRecoverAccountFormDb
 };
