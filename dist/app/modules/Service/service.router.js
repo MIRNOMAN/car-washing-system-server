@@ -18,5 +18,5 @@ router.get('/:id', service_controller_1.getServiceController);
 router.get('/', service_controller_1.getAllServices);
 router.put('/:id', (0, auth_1.default)('admin'), (0, validateRequest_1.validateRequest)(service_validation_1.updateServiceSchema), service_controller_1.updateServiceController);
 router.delete('/:id', (0, auth_1.default)('admin'), (0, validateRequest_1.validateRequest)(service_validation_1.updateServiceSchema), service_controller_1.deleteServiceController);
-router.post('/slots(', (0, auth_1.default)('admin'), (0, validateRequest_1.validateRequest)(slot_validation_1.serviceValidation.getAvailableSlotsQuerySchema), slot_controller_1.SlotControllers.createSlotController);
+router.post('/slots', (0, auth_1.default)('admin'), (0, validateRequest_1.validateRequest)(slot_validation_1.serviceValidation.getAvailableSlotsQuerySchema), slot_controller_1.SlotControllers.createSlotController);
 exports.serviceRoute = router;

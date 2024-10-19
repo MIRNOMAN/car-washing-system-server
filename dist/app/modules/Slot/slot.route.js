@@ -15,5 +15,5 @@ const router = express_1.default.Router();
 //   validateRequest(serviceValidation.getAvailableSlotsQuerySchema),
 //   SlotControllers.createSlotController,
 // );
-router.get('/availability', (0, validateRequest_1.validateRequest)(slot_validation_1.serviceValidation.getAvailableSlotsQuerySchema), slot_controller_1.SlotControllers.getSlotControllers);
+router.get('/slots/availability', (0, validateRequest_1.validateRequest)(slot_validation_1.serviceValidation.getAvailableSlotsQuerySchema), slot_controller_1.SlotControllers.getSlotControllers);
 exports.slotRoutes = router;
