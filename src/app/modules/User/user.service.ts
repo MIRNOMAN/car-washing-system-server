@@ -147,6 +147,47 @@ const updateSpecificUserIntoDb = async (payload: Partial<TUser>, email: string, 
 
 
 
+const getRoleBaseUserFormDb = async (role: string, next: NextFunction) => {
+  try {
+      const users = await UserModel.find({ role });
+
+      if (users.length > 0) {
+          return {
+              success: true,
+              statusCode: httpStatus.OK,
+              message: `${role}s retrieved successfully`,
+              data: users,
+          };
+      } else {
+          return {
+              success: false,
+              statusCode: httpStatus.NOT_FOUND,
+              message: `No users found with the role: ${role}`,
+          };
+      }
+  } catch (error) {
+      next(error);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const SigninIntoDB = async (payload: TAuth) => {
   // const {email} = payload
   const findUser = await UserModel.findOne(
@@ -194,5 +235,6 @@ export const UserServices = {
   getFullUserDataFormDb,
   getUserForRecoverAccountFormDb,
   recoverAccountFromDb,
-  updateSpecificUserIntoDb
+  updateSpecificUserIntoDb,
+  getRoleBaseUserFormDb
 };
