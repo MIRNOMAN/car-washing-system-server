@@ -156,6 +156,7 @@ const updateSpecificUser = catchAsync(async (req: Request, res: Response, next: 
                   statusCode: httpStatus.UNAUTHORIZED,
                   success: false,
                   message: 'You have no access to this route.',
+                  data: null,
               });
           } else {
               try {
@@ -178,6 +179,38 @@ const updateSpecificUser = catchAsync(async (req: Request, res: Response, next: 
 });
 
 
+const getRoleBaseUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const { role } = req.query;
+
+  // Validate the role query parameter
+  if (role !== 'admin' && role !== 'user') {
+      return sendResponse(res, {
+          statusCode: httpStatus.UNAUTHORIZED,
+          success: false,
+          message: 'Role must be admin or user.',
+          data: null, // Provide a default value for data
+      });
+  }
+
+  try {
+      const result = await UserServices.getRoleBaseUserFormDb(role as string, next);
+      if (result) {
+          return sendResponse(res, {
+              statusCode: result.statusCode || httpStatus.OK,
+              success: result.success,
+              message: result.message,
+              data: result.data,
+          });
+      }
+  } catch (error) {
+      next(error);
+  }
+});
+
+
+
+
+
 
 const SignInUser = catchAsync(async (req, res) => {
   const result = await UserServices.SigninIntoDB(req.body);
@@ -196,5 +229,6 @@ export const UserControllers = {
   getFullUserObj,
   recoverAccount,
   getUserForRecoverAccount,
-  updateSpecificUser
+  updateSpecificUser,
+  getRoleBaseUser
 };
