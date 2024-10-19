@@ -171,6 +171,28 @@ const getRoleBaseUserFormDb = async (role: string, next: NextFunction) => {
 };
 
 
+const changeUserRoleIntoDb = async (payload: { _id: string; role: string }, next: NextFunction) => {
+  try {
+      const updatedUser = await UserModel.findByIdAndUpdate(payload._id, { role: payload.role }, { new: true });
+
+      if (updatedUser) {
+          return {
+              success: true,
+              statusCode: httpStatus.OK,
+              message: `User role changed to ${payload.role}`,
+              data: updatedUser,
+          };
+      } else {
+          return {
+              success: false,
+              statusCode: httpStatus.NOT_FOUND,
+              message: 'User not found',
+          };
+      }
+  } catch (error) {
+      next(error);
+  }
+};
 
 
 
@@ -236,5 +258,6 @@ export const UserServices = {
   getUserForRecoverAccountFormDb,
   recoverAccountFromDb,
   updateSpecificUserIntoDb,
-  getRoleBaseUserFormDb
+  getRoleBaseUserFormDb,
+  changeUserRoleIntoDb
 };
