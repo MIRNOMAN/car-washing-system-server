@@ -1,5 +1,5 @@
 import httpStatus from 'http-status';
-import { sendResponse, sendResponseWithToken } from '../../utils/sendResponse';
+import { sendResponse } from '../../utils/sendResponse';
 import { UserServices } from './user.service';
 import { catchAsync } from '../../utils/catchAsync';
 import jwt,{ JwtPayload } from 'jsonwebtoken';
@@ -223,18 +223,28 @@ const changeUserRole = catchAsync(async (req: Request, res: Response, next: Next
 });
 
 
+const SignInUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const result = await UserServices.SigninIntoDB(req.body, next);
+  
+  // Check if the result is returned
+  if (result) {
+      // Set the refresh token in a cookie
+      res.cookie('refreshToken', result.refreshToken, {
+          secure: false, // Set to true in production with HTTPS
+          httpOnly: true,
+      });
 
-
-const SignInUser = catchAsync(async (req, res) => {
-  const result = await UserServices.SigninIntoDB(req.body);
-  sendResponseWithToken(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: 'User logged in successfully',
-    token: result.token,
-    data: result.data,
-  });
+      return sendResponse(res, {
+          statusCode: result.statusCode || 200, // Default to 200 if not provided
+          success: result.success,
+          message: result.message,
+          data: result.data,
+          token: result.accessToken,
+      });
+  }
 });
+
+
 
 export const UserControllers = {
   createUser,
@@ -244,5 +254,5 @@ export const UserControllers = {
   getUserForRecoverAccount,
   updateSpecificUser,
   getRoleBaseUser,
-  changeUserRole
+  changeUserRole,
 };
