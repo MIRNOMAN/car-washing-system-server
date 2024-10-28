@@ -33,7 +33,7 @@ const getAllSlots = catchAsync(async (req, res) => {
     success: true,
     message: "All slots retrieved successfully",
     data: result.result,
-    // meta: result.meta,
+    meta: result.meta,
   });
 });
 const getSingleSlots = catchAsync(async (req, res) => {

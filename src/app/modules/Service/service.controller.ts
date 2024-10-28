@@ -24,7 +24,7 @@ const getAllServices = catchAsync(async (req, res) => {
     success: true,
     message: "Services retrieved successfully",
     data: result.result,
-    // meta: result.meta,
+    meta: result.meta,
   });
 });
 const getSingleServices = catchAsync(async (req, res) => {

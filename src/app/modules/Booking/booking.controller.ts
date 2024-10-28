@@ -1,179 +1,57 @@
-import httpStatus from 'http-status';
-import { catchAsync } from '../../utils/catchAsync';
-import { TBooking } from './booking.interface';
-import { bookingService } from './booking.service';
+import jwt, { JwtPayload } from "jsonwebtoken";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { RequestHandler } from "express";
+import httpStatus from "http-status";
+import config from "../../config";
+import { catchAsync } from "../../utils/catchAsync";
+import { BookingServices } from "./booking.service";
+import { sendResponse } from "../../utils/sendResponse";
+import { UserModel } from "../User/user.model";
+import { TUser } from "../User/user.interface";
 
-const createBooking = catchAsync(async (req, res) => {
-  try {
-    const userId = req.user?._id; // Assuming you have user information from JWT in req.user
-    const {
-      serviceId,
-      slotId,
-      vehicleType,
-      vehicleBrand,
-      vehicleModel,
-      manufacturingYear,
-      registrationPlate,
-    } = req.body;
 
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        statusCode: httpStatus.UNAUTHORIZED,
-        message: 'Unauthorized: User not found',
-      });
-    }
-
-    const booking = await bookingService.createBooking({
-      serviceId,
-      slotId,
-      user: userId.toString(),
-      vehicleType,
-      vehicleBrand,
-      vehicleModel,
-      manufacturingYear,
-      registrationPlate,
-    });
-
-    if (booking) {
-      return res.status(200).json({
-        success: true,
-        statusCode: httpStatus.OK,
-        message: 'Booking successful',
-        data: booking,
-      });
-    } else {
-      return res.status(400).json({
-        success: false,
-        statusCode: httpStatus.BAD_REQUEST,
-        message: 'Failed to create booking',
-      });
-    }
-  } catch (error) {
-    // console.error(error);
-    return res.status(500).json({
-      success: false,
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      message: 'Internal Server Error',
-    });
-  }
+const createBookings: RequestHandler = catchAsync(async (req, res) => {
+  const bookingData = req.body;
+  const result = await BookingServices.createBookings(bookingData);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Booking successful",
+    data: result,
+  });
 });
 
 const getAllBookings = catchAsync(async (req, res) => {
-  try {
-    const bookings = await bookingService.getAllBookings();
-    return res.status(200).json({
-      success: true,
-      statusCode: httpStatus.OK,
-      message: 'All bookings retrieved successfully',
-      data: bookings,
-    });
-  } catch (error) {
-    // console.error(error);
-    return res.status(500).json({
-      success: false,
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      message: 'Internal Server Error',
-    });
-  }
+  const queryParams = req.query;
+  const result = await BookingServices.getAllBookings(queryParams);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "All bookings retrieved successfully",
+    data: result,
+  });
 });
-
 const getMyBookings = catchAsync(async (req, res) => {
-  try {
-    const userId = req.user?._id; // Assuming you have user information from JWT in req.user
-
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        statusCode: httpStatus.UNAUTHORIZED,
-        message: 'Unauthorized: User not found',
-      });
-    }
-
-    const bookings = await bookingService.getMyBookings(userId.toString());
-    return res.status(200).json({
-      success: true,
-      statusCode: httpStatus.OK,
-      message: 'User bookings retrieved successfully',
-      data: bookings,
-    });
-  } catch (error) {
-    // console.error(error);
-    return res.status(500).json({
-      success: false,
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      message: 'Internal Server Error',
-    });
-  }
+  const queryParams = req.query;
+  const token = req.headers.authorization;
+  const decoded = jwt.verify(
+    token as string,
+    config.jwt_access_secret as string
+  ) as JwtPayload;
+  const { email } = decoded;
+  const customer = await UserModel.findOne({ email: email });
+  const customerId = (customer as TUser)._id;
+  const result = await BookingServices.getMyBookings(customerId, queryParams);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User bookings retrieved successfully",
+    data: result,
+  });
 });
 
-const updateBooking = catchAsync(async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updateData: Partial<TBooking> = req.body;
-
-    const updatedBooking = await bookingService.updateBookingById(
-      id,
-      updateData,
-    );
-
-    if (updatedBooking) {
-      return res.status(200).json({
-        success: true,
-        statusCode: httpStatus.OK,
-        message: 'Booking updated successfully',
-        data: updatedBooking,
-      });
-    } else {
-      return res.status(404).json({
-        success: false,
-        statusCode: httpStatus.NOT_FOUND,
-        message: 'Booking not found',
-      });
-    }
-  } catch (error) {
-    // console.error(error);
-    return res.status(500).json({
-      success: false,
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      message: 'Internal Server Error',
-    });
-  }
-});
-
-const getBooking = catchAsync(async (req, res) => {
-  try {
-    const { id } = req.params;
-    const booking = await bookingService.getBookingById(id);
-
-    if (booking) {
-      return res.status(200).json({
-        success: true,
-        statusCode: httpStatus.OK,
-        message: 'Booking retrieved successfully',
-        data: booking,
-      });
-    } else {
-      return res.status(404).json({
-        success: false,
-        statusCode: httpStatus.NOT_FOUND,
-        message: 'Booking not found',
-      });
-    }
-  } catch (error) {
-    // console.error(error);
-    return res.status(500).json({
-      success: false,
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      message: 'Internal Server Error',
-    });
-  }
-});
-
-export const bookingController = {
-  createBooking,
+export const BookingControllers = {
+  createBookings,
   getAllBookings,
   getMyBookings,
-  updateBooking,
-  getBooking,
 };
