@@ -16,7 +16,7 @@ const createSlotsIntoDB = async (payload: TSlot) => {
   } = payload;
 
   const isServiceExist = await ServiceModel.findById(serviceId);
-  // console.log(isServiceExist);
+  console.log(isServiceExist);
   if (!isServiceExist) {
     throw new AppError(httpStatus.BAD_REQUEST, "Service Does not exist");
   }
