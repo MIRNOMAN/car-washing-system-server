@@ -1,35 +1,29 @@
-import express from 'express';
-import {
-  createService,
-  deleteServiceController,
-  getAllServices,
-  getServiceController,
-  updateServiceController,
-} from './service.controller';
-import { adminMiddleware, authMiddleware } from './service.adminAuthorization';
-import { updateServiceSchema } from './service.validation';
-import { validateRequest } from '../../middlewares/validateRequest';
-import Auth from '../../middlewares/auth';
+import express from "express";
+import { ServiceController } from "./service.controller";
+import { ServiceValidation } from "./service.validation";
+import auth from "../../middlewares/auth";
+import { validateRequest } from "../../middlewares/validateRequest";
 
 const router = express.Router();
 
-router.post('/', Auth('admin'), authMiddleware, adminMiddleware, createService);
-router.get('/:id', getServiceController);
-router.get('/', getAllServices);
-router.put(
-  '/:id',
-  Auth('admin'),
-  validateRequest(updateServiceSchema),
-  updateServiceController,
+router.post(
+  "/create-service",
+  auth("admin"),
+  validateRequest(ServiceValidation.createServiceValidationSchema),
+  ServiceController.createService
+);
+// get all services
+router.get("/", ServiceController.getAllServices);
+// get single service
+router.get("/:id", ServiceController.getSingleServices);
+// delete single service
+router.delete("/:id", auth("admin"), ServiceController.deleteSingleService);
+// update single service
+router.patch(
+  "/:id",
+  auth("admin"),
+  validateRequest(ServiceValidation.updateServiceValidationSchema),
+  ServiceController.updateSingleService
 );
 
-router.delete(
-  '/:id',
-  Auth('admin'),
-  validateRequest(updateServiceSchema),
-  deleteServiceController,
-);
-
-
-
-export const serviceRoute = router;
+export const ServiceRoutes = router;

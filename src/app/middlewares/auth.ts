@@ -1,45 +1,42 @@
+import jwt, { JwtPayload } from "jsonwebtoken";
 import { NextFunction, Request, Response } from "express";
-import jwt, { JwtPayload } from 'jsonwebtoken';
+import httpStatus from "http-status";
 import config from "../config";
+import { TUserRole } from "../modules/User/user.interface";
+import { catchAsync } from "../utils/catchAsync";
+import { AppError } from "../error/appError";
+import { UserModel } from "../modules/User/user.model";
 
-function Auth(role: string) {
-    return async (req: Request, res: Response, next: NextFunction) => {
-        const authHeader = req.headers.authorization;
 
-        if (!authHeader || !authHeader.startsWith('Bearer')) {
-            return res.status(401).json({
-                success: false,
-                statusCode: 401,
-                message: 'You have no access to this route'
-            });
-        };
+const auth = (...RequiredRoles: TUserRole[]) => {
+  return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const token = req.headers.authorization;
+    // check if the token exist or not
+    if (!token) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "You are not authorized");
+    }
+    // check if the token is valid
+    const decoded = jwt.verify(
+      token,
+      config.jwt_access_secret as string
+    ) as JwtPayload;
 
-        const extractToken = authHeader.slice(7);
-        jwt.verify(extractToken, (config.jwt_access_secret as string), (err, decoded) => {
-            if (err) {
-                return res.status(401).json({
-                    success: false,
-                    statusCode: 401,
-                    message: 'You have no access to this route'
-                });
+    //   check if user exist or not
+    const { role, email } = decoded;
+    const user = await UserModel.isUserExistByCustomEmail(email);
+    if (!user) {
+      throw new AppError(httpStatus.NOT_FOUND, "User Not Found");
+    }
 
-            } else {
-                const payload = decoded as JwtPayload;
-                if (payload.role !== role) {
-                    return res.status(401).json({
-                        success: false,
-                        statusCode: 401,
-                        message: `You have no access to this route`
-                    });
-
-                } else {
-                    req.user = (decoded as JwtPayload);
-                    next();
-                }
-            };
-
-        });
-    };
+    if (RequiredRoles && !RequiredRoles.includes(role)) {
+      throw new AppError(
+        httpStatus.UNAUTHORIZED,
+        "You have no access to this route"
+      );
+    }
+    req.user = decoded as JwtPayload;
+    next();
+  });
 };
 
-export default Auth;
+export default auth;

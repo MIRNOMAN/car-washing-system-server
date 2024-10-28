@@ -1,270 +1,95 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import httpStatus from 'http-status';
-import { TAuth, TUser } from './user.interface';
-import { AppError } from '../../error/appError';
-import config from '../../config';
-import { UserModel } from './user.model';
-import bcrypt from 'bcrypt';
-import { NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import verifyTokenSync from '../../utils/verifyTokenSync';
 
-const createUserIntoDB = async (payload: TUser,next: NextFunction) => {
+import httpStatus from "http-status";
+import config from "../../config";
+import { TUser, TUserLogin } from "./user.interface";
+import { UserModel } from "./user.model";
+import { createToken } from "../../middlewares/auth.utils";
+import { AppError } from "../../error/appError";
+import QueryBuilder from "../../builder/QueryBuilder";
+
+
+// signup
+const createUserIntoDB = async (payload: TUser) => {
+  if (!payload.password) {
+    payload.password = config.default_password as string;
+  }
   const result = await UserModel.create(payload);
-  const savedUser = await UserModel.findById(result._id, '-isDeleted')
-    .select('-password')
-    .exec();
-  return savedUser;
+  const { password, ...userWithoutPassword } = result.toObject();
+  return userWithoutPassword;
 };
-
-
-const getFullUserDataFormDb = async (email: string, next: NextFunction) => {
-  try {
-      const user = await UserModel.findOne({ email });
-      if (user) {
-          return {
-              success: true,
-              statusCode: httpStatus.OK,
-              message: 'User retrieved successfully',
-              data: user
-          };
-      }
-  } catch (error) {
-      next(error);
+const updateUserRole = async (id: string, payload: Partial<TUser>) => {
+  // Check if the user exists
+  const user = await UserModel.findById(id);
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
-};
 
-
-
-const getUserForRecoverAccountFormDb = async (email: string, next: NextFunction) => {
-  try {
-      const user: TUser | null = await UserModel.findOne({ email });
-
-      if (user) {
-          const token = jwt.sign({ email: user.email }, config.jwt_access_secret as string, { expiresIn: '15m' });
-
-          if (!token) {
-              return {
-                  success: false,
-                  statusCode: httpStatus.OK,
-                  message: 'Something went wrong',
-                  data: []
-              };
-          }
-
-          const resBody = {
-              name: user.name,
-              email: user.email,
-              token,
-          };
-
-          return {
-              success: true,
-              statusCode: httpStatus.OK,
-              message: 'User retrieved successfully',
-              data: resBody
-          };
-      } else {
-          return {
-              success: false,
-              statusCode: httpStatus.OK,
-              message: 'User not found',
-              data: []
-          };
-      }
-  } catch (error) {
-      next(error);
+  // Check if the new status is valid
+  if (!["user", "admin"].includes(payload.role as string)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid status");
   }
+
+  // Update role
+  const result = await UserModel.findByIdAndUpdate(id, payload, {
+    new: true,
+    runValidators: true,
+  });
+  return result;
 };
+const updateUserProfile = async (id: string, payload: Partial<TUser>) => {
+  // Check if the user exists
+  const user = await UserModel.findById(id);
 
-
-
-const recoverAccountFromDb = async (payload: { token: string, newPassword: string }, next: NextFunction) => {
-  try {
-      const decoded = verifyTokenSync(payload.token, config.jwt_access_secret as string);
-
-      if (!decoded || !decoded.email) {
-          return {
-              success: false,
-              message: 'OTP Expired',
-          };
-      }
-
-      const email = decoded.email;
-      const encryptedNewPassword = await bcrypt.hash(payload.newPassword, Number(config.bcrypt_slat_rounds));
-
-      if (!encryptedNewPassword) {
-          return {
-              success: false,
-              message: 'Something went wrong while encrypting the password',
-          };
-      }
-
-      const updateUser = await UserModel.findOneAndUpdate({ email }, { password: encryptedNewPassword },{ new: true });
-  
-      if (!updateUser) {
-          return {
-              success: false,
-              message: 'User update failed',
-          };
-      }
-
-      return {
-          success: true,
-          message: 'Account recovered successfully',
-      };
-
-  } catch (error) {
-      next(error);
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
+  // Update role
+  const result = await UserModel.findByIdAndUpdate(id, payload, {
+    new: true,
+  });
+  return result;
 };
 
+const getAllUserFromDB = async (queryParams: Record<string, unknown>) => {
+  const userQuery = new QueryBuilder(UserModel.find(), queryParams);
+  userQuery.search(["name"]).filter().sort().paginate().fields();
+  const result = await userQuery.modelQuery;
+  const meta = await userQuery.countTotal();
+  return { result, meta };
+};
 
-const updateSpecificUserIntoDb = async (payload: Partial<TUser>, email: string, next: NextFunction) => {
-  try {
-      const updatedUser = await UserModel.findOneAndUpdate({ email }, payload, { new: true });
-
-      if (updatedUser) {
-          return {
-              success: true,
-              statusCode: httpStatus.OK,
-              message: 'User updated successfully',
-              data: updatedUser,
-          };
-      } else {
-          return {
-              success: false,
-              statusCode: httpStatus.NOT_FOUND,
-              message: 'User not found',
-          };
-      }
-  } catch (error) {
-      next(error);
+// login
+const loginUser = async (payload: TUserLogin) => {
+  // check if user exist or nto
+  const user = await UserModel.isUserExistByCustomEmail(payload.email);
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User Not Found");
   }
-};
-
-
-
-const getRoleBaseUserFormDb = async (role: string, next: NextFunction) => {
-  try {
-
-      const users = await UserModel.find({ role });
-
-      if (users.length > 0) {
-          return {
-              success: true,
-              statusCode: httpStatus.OK,
-              message: `${role}s retrieved successfully`,
-              data: users,
-          };
-      } else {
-          return {
-              success: false,
-              statusCode: httpStatus.NOT_FOUND,
-              message: `No users found with the role: ${role}`,
-          };
-      }
-  } catch (error) {
-      next(error);
+  //   check if the password is matched or not ?
+  if (!(await UserModel.isPasswordMatched(payload?.password, user?.password))) {
+    throw new AppError(httpStatus.FORBIDDEN, "Password Does not match");
   }
+
+  // create token and send to the user
+  const jwtPayload = {
+    email: user.email,
+    role: user.role,
+  };
+  const accessToken = createToken(
+    jwtPayload,
+    config.jwt_access_secret as string,
+    config.jwt_access_expires_in as string
+  );
+  const result = { accessToken, user };
+  return result;
 };
-
-
-const changeUserRoleIntoDb = async (payload: { _id: string; role: string }, next: NextFunction) => {
-  try {
-      const updatedUser = await UserModel.findByIdAndUpdate(payload._id, { role: payload.role }, { new: true });
-
-      if (updatedUser) {
-          return {
-              success: true,
-              statusCode: httpStatus.OK,
-              message: `User role changed to ${payload.role}`,
-              data: updatedUser,
-          };
-      } else {
-          return {
-              success: false,
-              statusCode: httpStatus.NOT_FOUND,
-              message: 'User not found',
-          };
-      }
-  } catch (error) {
-      next(error);
-  }
-};
-
-
-
-const SigninIntoDB = async (payload: TAuth, next: NextFunction) => {
-  try {
-      // Find the user by email and include the password field
-      const user = await UserModel.findOne({ email: payload.email },'-isDeleted').select('+password');
-
-      if (!user) {
-          return {
-              success: false,
-              statusCode: httpStatus.BAD_REQUEST,
-              message: 'The email you provided did not match any accounts',
-              data: null,
-              token: null,
-          };
-      }
-
-      // Verify the password
-      const isPasswordCorrect = await bcrypt.compare(payload.password, user.password);
-      if (!isPasswordCorrect) {
-          return {
-              success: false,
-              statusCode: httpStatus.BAD_REQUEST,
-              message: 'Wrong password',
-              data: null,
-              token: null,
-          };
-      }
-
-      // Create JWT payload
-      const tokenPayload = { user: user.email, role: user.role };
-
-      // Generate access and refresh tokens
-      const accessToken = jwt.sign(tokenPayload, config.jwt_access_secret as string, { expiresIn: '3d' });
-      const refreshToken = jwt.sign(tokenPayload, config.jwt_refresh_secret as string, { expiresIn: '365d' });
-
-      if (!accessToken || !refreshToken) {
-          return {
-              success: false,
-              statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-              message: 'Error generating tokens',
-              data: null,
-              token: null,
-          };
-      }
-
-      // Return user data excluding password
-      const userForClient = await UserModel.findOne({ email: payload.email });
-
-      return {
-          success: true,
-          statusCode: httpStatus.OK,
-          message: 'User logged in successfully',
-          data: userForClient,
-          accessToken,
-          refreshToken,
-      };
-  } catch (error) {
-      next(error);
-  }
-};
-
-
 
 export const UserServices = {
   createUserIntoDB,
-  SigninIntoDB,
-  getFullUserDataFormDb,
-  getUserForRecoverAccountFormDb,
-  recoverAccountFromDb,
-  updateSpecificUserIntoDb,
-  getRoleBaseUserFormDb,
-  changeUserRoleIntoDb
+  getAllUserFromDB,
+  loginUser,
+  updateUserRole,
+  updateUserProfile,
 };

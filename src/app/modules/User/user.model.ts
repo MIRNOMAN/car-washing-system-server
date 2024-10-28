@@ -1,62 +1,69 @@
-import bcrypt from 'bcrypt';
-import { model, Schema } from 'mongoose';
-import { TUser } from './user.interface';
-import config from '../../config';
+/* eslint-disable @typescript-eslint/no-this-alias */
+import { Schema, model } from "mongoose";
+import { TUser, TUserModel } from "./user.interface";
+import bcrypt from "bcrypt";
+import config from "../../config";
 
-const userSchema = new Schema<TUser>(
+export const userSchema = new Schema<TUser, TUserModel>(
   {
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    phone: { type: String, required: false },
-    address: { type: String, required: false },
-    role: { type: String, enum: ['user', 'admin'], required: true },
-    isDeleted: { type: Boolean, default: false },
+    name: {
+      type: String,
+      required: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    password: {
+      type: String,
+      required: true,
+      maxlength: [20, "'Password can not be more than 20 character'"],
+      select: false,
+    },
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    role: {
+      type: String,
+      enum: ["admin", "user"],
+      required: false,
+    },
+    address: {
+      type: String,
+      required: true,
+    },
   },
   {
     timestamps: true,
-  },
+  }
 );
 
-userSchema.pre('save', async function (next) {
-  // eslint-disable-next-line @typescript-eslint/no-this-alias
-  const user = this; // doc
-  // hashing password and save into DB
-  const salt = await bcrypt.genSaltSync(Number(config.bcrypt_slat_rounds));
-  user.password = await bcrypt.hash(user.password, salt);
+userSchema.pre("save", async function (next) {
+  const user = this;
+  user.password = await bcrypt.hash(
+    user.password,
+    Number(config.bcrypt_slat_rounds)
+  );
+  next();
+});
+userSchema.post("save", function (doc, next) {
+  doc.password = "";
   next();
 });
 
-// set '' after saving password
-// userSchema.post('save', function (doc, next) {
-//   doc.password = '';
-//   next();
-// });
-
-userSchema.pre('find', function (next) {
-  this.find({ isDeleted: { $ne: true } });
-  next();
-});
-
-userSchema.pre('findOne', function (next) {
-  this.find({ isDeleted: { $ne: true } });
-  next();
-});
-
-userSchema.pre('aggregate', function (next) {
-  this.pipeline().unshift({ $match: { isDeleted: { $ne: true } } });
-  next();
-});
-
-userSchema.statics.isUserExistsByCustomId = async function (id: string) {
-  return await UserModel.findOne({ id }).select('+password');
+userSchema.statics.isUserExistByCustomEmail = async function (email: string) {
+  return await UserModel.findOne({ email }).select("+password");
 };
 
 userSchema.statics.isPasswordMatched = async function (
   plainTextPassword,
-  hashedPassword,
+  hashedPassword
 ) {
   return await bcrypt.compare(plainTextPassword, hashedPassword);
 };
 
-export const UserModel = model<TUser>('User', userSchema);
+export const UserModel = model<TUser, TUserModel>("User", userSchema);
