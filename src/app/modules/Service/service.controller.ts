@@ -1,118 +1,69 @@
-import { createServiceSchema, updateServiceSchema } from './service.validation';
-import { catchAsync } from '../../utils/catchAsync';
-import { serviceService } from './service.service';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { RequestHandler } from "express";
+import httpStatus from "http-status";
+import { Services } from "./service.service";
+import { catchAsync } from "../../utils/catchAsync";
+import { sendResponse } from "../../utils/sendResponse";
 
-export const createService = catchAsync(async (req, res) => {
-  try {
-    const validatedData = createServiceSchema.parse(req.body);
-    const service = await serviceService.createService(validatedData);
-
-    if (!service) {
-      return res.status(404).json({
-        success: false,
-        statusCode: 404,
-        message: 'service not found',
-        data: [],
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      statusCode: 200,
-      message: 'Service created successfully',
-      data: service,
-    });
-  } catch (error) {
-    return res.status(400).json({
-      success: false,
-      statusCode: 400,
-      message: error instanceof Error ? error.message : 'Validation error',
-    });
-  }
-});
-
-export const getServiceController = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const service = await serviceService.getServiceById(id);
-
-  if (!service) {
-    return res.status(404).json({
-      success: false,
-      statusCode: 404,
-      message: 'service not found',
-      data: [],
-    });
-  }
-
-  return res.status(200).json({
+const createService: RequestHandler = catchAsync(async (req, res) => {
+  const serviceData = req.body;
+  const result = await Services.createServiceIntoDB(serviceData);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
     success: true,
-    statusCode: 200,
-    message: 'Service retrieved successfully',
-    data: service,
-  });
-});
-
-export const getAllServices = catchAsync(async (req, res) => {
-  const result = await serviceService.getAllServiceFromDB();
-
-  if (!result) {
-    return res.status(404).json({
-      success: false,
-      statusCode: 404,
-      message: 'service not found',
-      data: [],
-    });
-  }
-
-  res.status(200).json({
-    success: true,
-    statusCode: 200,
-    message: 'Services retrieved successfully',
+    message: "Service created successfully",
     data: result,
   });
 });
 
-export const updateServiceController = catchAsync(async (req, res) => {
+const getAllServices = catchAsync(async (req, res) => {
+  const queryParams = req.query;
+  const result = await Services.getAllServices(queryParams);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Services retrieved successfully",
+    data: result.result,
+    // meta: result.meta,
+  });
+});
+const getSingleServices = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const updates = updateServiceSchema.parse(req.body);
-
-  const updatedService = await serviceService.updateServiceById(id, updates);
-
-  if (!updatedService) {
-    return res.status(404).json({
-      success: false,
-      statusCode: 404,
-      message: 'service not found',
-      data: [],
-    });
-  }
-
-  res.status(200).json({
+  const result = await Services.getSingleServices(id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
     success: true,
-    statusCode: 200,
-    message: 'Service updated successfully',
-    data: updatedService,
+    message: "Services retrieved successfully",
+    data: result,
   });
 });
 
-export const deleteServiceController = catchAsync(async (req, res) => {
-  const deleteService = await serviceService.deleteServiceById({
-    params: { id: req.params.id },
-  });
-
-  if (!deleteService) {
-    return res.status(404).json({
-      success: false,
-      statusCode: 404,
-      message: 'service not found',
-      data: [],
-    });
-  }
-
-  res.status(200).json({
+const updateSingleService = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const updatedData = req.body;
+  const result = await Services.updateService(id, updatedData);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
     success: true,
-    statusCode: 200,
-    message: 'Service updated successfully',
-    data: deleteService,
+    message: "Service updated successfully",
+    data: result,
   });
 });
+const deleteSingleService = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const result = await Services.deleteService(id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Service deleted successfully",
+    data: result,
+  });
+});
+
+export const ServiceController = {
+  createService,
+  getAllServices,
+  getSingleServices,
+  updateSingleService,
+  deleteSingleService,
+};
