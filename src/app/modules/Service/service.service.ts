@@ -1,55 +1,63 @@
-import { Error } from 'mongoose';
-import { DeleteServiceInput, TService } from './service.interface';
-import { ServiceModel } from './service.model';
-import {} from './service.validation';
+import httpStatus from "http-status";
+import { TService } from "./service.interface";
+import { ServiceModel } from "./service.model";
+import QueryBuilder from "../../builder/QueryBuilder";
+import { AppError } from "../../error/appError";
 
-const createService = async (serviceData: TService) => {
-  const result = await ServiceModel.create(serviceData);
+
+const createServiceIntoDB = async (payload: TService) => {
+  const result = await ServiceModel.create(payload);
   return result;
 };
 
-const getServiceById = async (id: string): Promise<TService> => {
-  const service = await ServiceModel.findById(id);
-  if (!service) {
-    throw new Error('Service not found');
+const getAllServices = async (queryParams: Record<string, unknown>) => {
+  const serviceQuery = new QueryBuilder(
+    ServiceModel.find({ isDeleted: false }),
+    queryParams
+  );
+  serviceQuery.search(["name"]).filter().sort().paginate().fields();
+  const result = await serviceQuery.modelQuery;
+  const meta = await serviceQuery.countTotal();
+  return { result, meta };
+};
+const getSingleServices = async (id: string) => {
+  const isServiceExist = await ServiceModel.findById(id);
+  if (!isServiceExist) {
+    throw new AppError(httpStatus.NOT_FOUND, "Service not found");
   }
-  return service;
-};
-
-const getAllServiceFromDB = async () => {
-  const result = await ServiceModel.find({ isDeleted: false });
+  const result = await ServiceModel.findById(id);
   return result;
 };
 
-const updateServiceById = async (
-  serviceId: string,
-  updateData: Partial<TService>,
-) => {
-  const result = await ServiceModel.findByIdAndUpdate(serviceId, updateData, {
+const updateService = async (id: string, payload: Partial<TService>) => {
+  const isServiceExist = await ServiceModel.findById(id);
+  if (!isServiceExist) {
+    throw new AppError(httpStatus.NOT_FOUND, "Service not found");
+  }
+  const result = await ServiceModel.findByIdAndUpdate(id, payload, {
     new: true,
+    runValidators: true,
   });
   return result;
 };
 
-const deleteServiceById = async (input: DeleteServiceInput) => {
-  const { id } = input.params;
-
-  const service = await ServiceModel.findById(id);
-
-  if (!service) {
-    throw new Error('Service not found');
+const deleteService = async (id: string) => {
+  const isServiceExist = await ServiceModel.findById(id);
+  if (!isServiceExist) {
+    throw new AppError(httpStatus.NOT_FOUND, "Service not found");
   }
-
-  service.isDeleted = true; // Soft delete
-  await service.save();
-
-  return service;
+  const result = await ServiceModel.findByIdAndUpdate(
+    id,
+    { isDeleted: true },
+    { new: true, runValidators: true }
+  );
+  return result;
 };
 
-export const serviceService = {
-  createService,
-  getServiceById,
-  updateServiceById,
-  deleteServiceById,
-  getAllServiceFromDB,
+export const Services = {
+  createServiceIntoDB,
+  getAllServices,
+  getSingleServices,
+  deleteService,
+  updateService,
 };
