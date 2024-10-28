@@ -1,23 +1,17 @@
-import express from 'express';
-import { validateRequest } from '../../middlewares/validateRequest';
-import { bookingController } from './booking.controller';
-import { bookingSchema } from './booking.validation';
-import Auth from '../../middlewares/auth';
+import express from "express";
+import auth from "../../middlewares/auth";
+import { BookingsValidation } from "./booking.validation";
+import { validateRequest } from "../../middlewares/validateRequest";
+import { BookingControllers } from "./booking.controller";
 
 const router = express.Router();
-
 router.post(
-  '/',
-  Auth('user'),
-  validateRequest(bookingSchema),
-  bookingController.createBooking,
+  "/bookings",
+  auth("user"),
+  validateRequest(BookingsValidation.createBookings),
+  BookingControllers.createBookings
 );
-router.get('/my-bookings', Auth('user'), bookingController.getMyBookings);
-router.get('/', Auth('admin'), bookingController.getAllBookings);
-// router.get('/', bookingController.GetCar);
+router.get("/bookings", auth("admin"), BookingControllers.getAllBookings);
+router.get("/my-bookings", auth("user"), BookingControllers.getMyBookings);
 
-// router.get('/:id',bookingController.GetCarById)
-// router.delete('/:id',bookingController.DeleteCar)
-// router.put('/:id',auth("admin"),validateRequest(CarValidation.UpdateCarValidationSchema),bookingController.UpdateCar)
-
-export const BookingRoutes = router;
+export const BookingRoute = router;
