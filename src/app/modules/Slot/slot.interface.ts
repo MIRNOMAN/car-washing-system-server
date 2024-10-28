@@ -1,10 +1,11 @@
 import { Schema } from 'mongoose';
 
 export type TSlot = {
-  service: Schema.Types.ObjectId;
+  serviceId: Schema.Types.ObjectId;
   date: Date;
   startTime: string;
   endTime: string;
+  transactionId?: string;
   isBooked: 'available' | 'booked' | 'canceled';
 };
 

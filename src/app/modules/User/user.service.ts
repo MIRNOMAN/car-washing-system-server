@@ -10,7 +10,7 @@ import { NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import verifyTokenSync from '../../utils/verifyTokenSync';
 
-const createUserIntoDB = async (payload: TUser) => {
+const createUserIntoDB = async (payload: TUser,next: NextFunction) => {
   const result = await UserModel.create(payload);
   const savedUser = await UserModel.findById(result._id, '-isDeleted')
     .select('-password')
@@ -84,14 +84,14 @@ const recoverAccountFromDb = async (payload: { token: string, newPassword: strin
   try {
       const decoded = verifyTokenSync(payload.token, config.jwt_access_secret as string);
 
-      if (!decoded || !decoded.user) {
+      if (!decoded || !decoded.email) {
           return {
               success: false,
               message: 'OTP Expired',
           };
       }
 
-      const email = decoded.user;
+      const email = decoded.email;
       const encryptedNewPassword = await bcrypt.hash(payload.newPassword, Number(config.bcrypt_slat_rounds));
 
       if (!encryptedNewPassword) {

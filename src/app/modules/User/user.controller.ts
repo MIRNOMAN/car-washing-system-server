@@ -6,9 +6,9 @@ import jwt,{ JwtPayload } from 'jsonwebtoken';
 import { NextFunction, Request, Response } from 'express';
 import config from '../../config';
 
-const createUser = catchAsync(async (req, res) => {
+const createUser = catchAsync(async (req, res,next) => {
   const userData = req.body;
-  const result = await UserServices.createUserIntoDB(userData);
+  const result = await UserServices.createUserIntoDB(userData,next);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
