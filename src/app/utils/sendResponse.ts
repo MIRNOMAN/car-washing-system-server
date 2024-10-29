@@ -1,36 +1,21 @@
-import { Response } from 'express';
+import { Response } from 'express'
 
 type TResponse<T> = {
-  statusCode: number;
-  success: boolean;
-  message?: string;
-  token?: string;
-  data: T;
-};
-
-interface TResponseWithToken<T> extends TResponse<T> {
-  token: string;
+  accessToken?: string
+  statusCode: number
+  success: boolean
+  message?: string
+  data: T
 }
 
-export const sendResponse = <T>(res: Response, data: TResponse<T>) => {
+const sendResponse = <T>(res: Response, data: TResponse<T>) => {
   res.status(data?.statusCode).json({
     success: data.success,
     statusCode: data?.statusCode,
     message: data.message,
-    token: data.token,
+    token: data.accessToken,
     data: data.data,
-  });
-};
+  })
+}
 
-export const sendResponseWithToken = <T>(
-  res: Response,
-  data: TResponseWithToken<T>,
-) => {
-  res.status(data?.statusCode).json({
-    success: data.success,
-    statusCode: data.statusCode,
-    message: data.message,
-    token: data.token,
-    data: data.data,
-  });
-};
+export default sendResponse

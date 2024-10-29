@@ -1,133 +1,90 @@
-import httpStatus from 'http-status';
-import { AppError } from '../../error/appError';
-import { TSlot } from './slot.interface';
-import SlotModel from './slot.model';
-import QueryBuilder from '../../builder/QueryBuilder';
-import { ServiceModel } from '../Service/service.model';
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
+// src/modules/slot/slot.service.ts
+import { Types } from 'mongoose'
+import { Slot } from './slot.model'
+import { TSlot } from './slot.interface'
+import { generateSlots } from './slot.utils'
+import { Service } from '../Service/service.model'
 
-const createSlotsIntoDB = async (payload: TSlot) => {
-  const {
-    serviceId,
-    date,
-    startTime,
-    endTime,
-    transactionId = "",
-    isBooked = "available",
-  } = payload;
 
-  const isServiceExist = await ServiceModel.findById(serviceId);
-  console.log(isServiceExist);
-  if (!isServiceExist) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Service Does not exist");
-  }
-  const slotDuration = isServiceExist.duration;
+interface SlotData {
+  service: string
+  date: Date
+  startTime: string
+  endTime: string
+}
 
-  const [startHour, startMinute] = startTime.split(":").map(Number);
-  const [endHour, endMinute] = endTime.split(":").map(Number);
-  const startTimeInMinutes = startHour * 60 + startMinute;
-  const endTimeInMinutes = endHour * 60 + endMinute;
-
-  const totalAvailableTime = endTimeInMinutes - startTimeInMinutes;
-
-  if (totalAvailableTime < slotDuration) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Time range is less than the slot duration"
-    );
+const createSlotIntoDB = async (slotData: SlotData): Promise<TSlot[]> => {
+  // Fetch the service to get its duration
+  const service = await Service.findById(slotData.service)
+  if (!service) {
+    throw new Error('Service not found')
   }
 
-  if (totalAvailableTime % slotDuration !== 0) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      `Time range is not divisible by the slot duration ${
-        slotDuration / 60
-      } hours`
-    );
+  const serviceDuration = service.duration
+  if (!serviceDuration) {
+    throw new Error('Service duration is not defined')
   }
 
-  const slots: TSlot[] = [];
+  const slots = generateSlots(
+    slotData.startTime,
+    slotData.endTime,
+    serviceDuration,
+  )
 
-  for (
-    let time = startTimeInMinutes;
-    time < endTimeInMinutes;
-    time += slotDuration
-  ) {
-    const slotStartHour = Math.floor(time / 60)
-      .toString()
-      .padStart(2, "0");
-    const slotStartMinute = (time % 60).toString().padStart(2, "0");
-    const slotEndHour = Math.floor((time + slotDuration) / 60)
-      .toString()
-      .padStart(2, "0");
-    const slotEndMinute = ((time + slotDuration) % 60)
-      .toString()
-      .padStart(2, "0");
+  const slotDocuments = slots.map((slot) => ({
+    service: new Types.ObjectId(slotData.service),
+    date: slotData.date,
+    startTime: slot.startTime,
+    endTime: slot.endTime,
+  }))
 
-    slots.push({
-      serviceId,
-      date: new Date(date),
-      startTime: `${slotStartHour}:${slotStartMinute}`,
-      endTime: `${slotEndHour}:${slotEndMinute}`,
-      isBooked,
-      transactionId,
-    });
-  }
+  const createdSlots = await Slot.insertMany(slotDocuments)
+  return createdSlots.map((slot) => slot.toObject() as TSlot) // Convert to plain objects
+}
 
-  const result = await SlotModel.insertMany(slots);
-  return result;
-};
+const getAllAvailableSlotsFromDB = async () => {
+  const result = await Slot.find({ isBooked: { $ne: 'booked' } })
+    .populate({
+      path: 'service',
+      match: { isDeleted: { $ne: true } },
+    })
+    .sort({ createdAt: -1 })
+  const filteredResult = result.filter((slot) => slot.service !== null)
+  return filteredResult
+}
+const getAllSlotsFromDB = async () => {
+  const result = await Slot.find()
+    .populate({
+      path: 'service',
+      match: { isDeleted: { $ne: true } },
+    })
+    .sort({ createdAt: -1 })
+  const filteredResult = result.filter((slot) => slot.service !== null)
+  return filteredResult
+}
 
-const getAllAvailableSlots = async (query: Record<string, unknown>) => {
-  const searchQuery = SlotModel.find({
-    isBooked: { $ne: "booked" },
-  });
-  const result = await searchQuery.find(query).populate("serviceId");
-  return result;
-};
-const getAllSlots = async (queryParams: Record<string, unknown>) => {
-  const slotQuery = new QueryBuilder(SlotModel.find(), queryParams);
-  slotQuery.search(["name"]).filter().sort().paginate().fields();
-  const result = await slotQuery.modelQuery.populate("serviceId");
-  const meta = await slotQuery.countTotal();
-  return { result, meta };
-};
-const getSingleSlot = async (id: string) => {
-  const isSlotExist = await SlotModel.findById(id);
-  if (!isSlotExist) {
-    throw new AppError(httpStatus.NOT_FOUND, "Slot not found");
-  }
-  const result = await SlotModel.findById(id);
-  return result;
-};
-const updateSlotStatus = async (
-  slotId: string,
-  newStatus: "available" | "canceled"
-) => {
+const updateSlotIntoDB = async (id: string, payload: Partial<TSlot>) => {
+  const slot = await Slot.findById(id)
   // Check if the slot exists
-  const slot = await SlotModel.findById(slotId);
   if (!slot) {
-    throw new AppError(httpStatus.NOT_FOUND, "Slot not found");
+    throw new Error('Slot not found.')
   }
-  // Check if the slot is booked
-  if (slot.isBooked === "booked") {
-    throw new AppError(httpStatus.FORBIDDEN, "Cannot update a booked slot");
-  }
-  // Check if the new status is valid
-  if (!["available", "canceled"].includes(newStatus)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid status");
+  // Check if the slot is already booked
+  if (slot.isBooked === 'booked') {
+    throw new Error('This slot is already booked and cannot be updated.')
   }
 
-  // Update the slot status
-  slot.isBooked = newStatus;
-  const updatedSlot = await slot.save();
+  const result = await Slot.findByIdAndUpdate(id, payload, {
+    new: true,
+    runValidators: true,
+  })
+  return result
+}
 
-  return updatedSlot;
-};
-
-export const SlotServices = {
-  createSlotsIntoDB,
-  getAllAvailableSlots,
-  updateSlotStatus,
-  getSingleSlot,
-  getAllSlots,
-};
+export const slotServices = {
+  createSlotIntoDB,
+  getAllAvailableSlotsFromDB,
+  updateSlotIntoDB,
+  getAllSlotsFromDB,
+}

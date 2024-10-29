@@ -1,25 +1,19 @@
-import express from 'express';
-import { validateRequest } from '../../middlewares/validateRequest';
-import Auth from '../../middlewares/auth';
-import { SlotValidations } from './slot.validation';
-import { SlotController } from './slot.controller';
+import express from 'express'
+import { slotController } from './slot.controller'
+import auth from '../../middlewares/auth'
+import validateRequest from '../../middlewares/validateRequest'
+import { SlotValidations } from './slot.validation'
+import { USER_ROLE } from '../User/user.constant'
 
-const router = express.Router();
+const router = express.Router()
 
-router.post(
-  "/create-slot",
-  Auth("admin"),
-  validateRequest(SlotValidations.createSlotValidationSchema),
-  SlotController.createSlot
-);
+router.get('/availability', slotController.getAvailableSlots)
+router.get('/all-slots', slotController.getAllSlots)
+router.put(
+  '/update-slot/:id',
+  auth(USER_ROLE.admin),
+  validateRequest(SlotValidations.updateSlotValidationSchema),
+  slotController.updateSlot,
+)
 
-router.get("/availability", SlotController.getAllAvailableSlots);
-router.get("/", SlotController.getAllSlots);
-router.get("/:id", SlotController.getSingleSlots);
-router.patch(
-  "/:id",
-  Auth("admin"),
-
-  SlotController.updateSingleSlot
-);
-export const slotRoutes = router;
+export const SlotRoutes = router

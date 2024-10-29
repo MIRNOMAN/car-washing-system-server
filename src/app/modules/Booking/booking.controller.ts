@@ -1,57 +1,49 @@
-import jwt, { JwtPayload } from "jsonwebtoken";
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { RequestHandler } from "express";
-import httpStatus from "http-status";
-import config from "../../config";
-import { catchAsync } from "../../utils/catchAsync";
-import { BookingServices } from "./booking.service";
-import { sendResponse } from "../../utils/sendResponse";
-import { UserModel } from "../User/user.model";
-import { TUser } from "../User/user.interface";
+import httpStatus from 'http-status'
+import catchAsync from '../../utils/catchAsync'
+import sendResponse from '../../utils/sendResponse'
+import { getUserInfoFromToken } from '../../utils/getUserInfoFromToken'
+import { bookingServices } from './booking.service'
+import { Booking } from './booking.model'
+import { handleNoDataResponse } from '../../error/handleNoData'
 
 
-const createBookings: RequestHandler = catchAsync(async (req, res) => {
-  const bookingData = req.body;
-  const result = await BookingServices.createBookings(bookingData);
+const createBooking = catchAsync(async (req, res) => {
+  const token = req.headers.authorization
+  const bookingData = req.body
+
+  const { email } = getUserInfoFromToken(token as string)
+
+  const result = await bookingServices.createBookingIntoDB(email, bookingData)
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Booking successful",
+    message: 'Booking successful',
     data: result,
-  });
-});
+  })
+})
 
 const getAllBookings = catchAsync(async (req, res) => {
-  const queryParams = req.query;
-  const result = await BookingServices.getAllBookings(queryParams);
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "All bookings retrieved successfully",
-    data: result,
-  });
-});
-const getMyBookings = catchAsync(async (req, res) => {
-  const queryParams = req.query;
-  const token = req.headers.authorization;
-  const decoded = jwt.verify(
-    token as string,
-    config.jwt_access_secret as string
-  ) as JwtPayload;
-  const { email } = decoded;
-  const customer = await UserModel.findOne({ email: email });
-  const customerId = (customer as TUser)._id;
-  const result = await BookingServices.getMyBookings(customerId, queryParams);
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "User bookings retrieved successfully",
-    data: result,
-  });
-});
+  // const result = await Service.find()
+  const result = await Booking.find()
+    .populate('customer', '_id name email phone address')
+    .populate('service', '_id name description price duration isDeleted')
+    .populate('slot', '_id service date startTime endTime isBooked')
+    .lean()
 
-export const BookingControllers = {
-  createBookings,
+  if (result?.length === 0) {
+    return handleNoDataResponse(res)
+  }
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'All bookings retrieved successfully',
+    data: result,
+  })
+})
+
+export const bookingController = {
+  createBooking,
   getAllBookings,
-  getMyBookings,
-};
+}

@@ -1,42 +1,57 @@
-import jwt, { JwtPayload } from "jsonwebtoken";
-import { NextFunction, Request, Response } from "express";
-import httpStatus from "http-status";
-import config from "../config";
-import { TUserRole } from "../modules/User/user.interface";
-import { catchAsync } from "../utils/catchAsync";
-import { AppError } from "../error/appError";
-import { UserModel } from "../modules/User/user.model";
+import { NextFunction, Request, Response } from 'express'
+import httpStatus from 'http-status'
+import jwt, { JwtPayload } from 'jsonwebtoken'
+import config from '../config'
+import catchAsync from '../utils/catchAsync'
+import { TUserRole } from '../modules/User/user.interface'
+import { User } from '../modules/User/user.model'
 
-
-const auth = (...RequiredRoles: TUserRole[]) => {
+const auth = (...requiredRoles: TUserRole[]) => {
   return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const token = req.headers.authorization;
-    // check if the token exist or not
+    const authHeader = req.headers.authorization
+    const token = authHeader && authHeader.split(' ')[1]
+
+    // checking if the token is missing
     if (!token) {
-      throw new AppError(httpStatus.UNAUTHORIZED, "You are not authorized");
+      return res.status(httpStatus.UNAUTHORIZED).json({
+        success: false,
+        statusCode: httpStatus.UNAUTHORIZED,
+        message: 'You have no access to this route',
+      })
     }
-    // check if the token is valid
+    // checking if the given token is valid
     const decoded = jwt.verify(
       token,
-      config.jwt_access_secret as string
-    ) as JwtPayload;
+      config.jwt_access_secret as string,
+    ) as JwtPayload
 
-    //   check if user exist or not
-    const { role, email } = decoded;
-    const user = await UserModel.isUserExistByCustomEmail(email);
+    const { role, email } = decoded
+
+    // console.log(email)
+
+    // checking if the user is exist
+    const user = await User.isUserExistsByEmail(email)
+
     if (!user) {
-      throw new AppError(httpStatus.NOT_FOUND, "User Not Found");
+      return res.status(httpStatus.UNAUTHORIZED).json({
+        success: false,
+        statusCode: httpStatus.UNAUTHORIZED,
+        message: 'You have no access to this route',
+      })
+    }
+    // checking if the user is already deleted
+
+    if (requiredRoles && !requiredRoles.includes(role)) {
+      return res.status(httpStatus.UNAUTHORIZED).json({
+        success: false,
+        statusCode: httpStatus.UNAUTHORIZED,
+        message: 'You have no access to this route',
+      })
     }
 
-    if (RequiredRoles && !RequiredRoles.includes(role)) {
-      throw new AppError(
-        httpStatus.UNAUTHORIZED,
-        "You have no access to this route"
-      );
-    }
-    req.user = decoded as JwtPayload;
-    next();
-  });
-};
+    req.user = decoded as JwtPayload
+    next()
+  })
+}
 
-export default auth;
+export default auth

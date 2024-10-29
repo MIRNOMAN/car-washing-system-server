@@ -1,22 +1,40 @@
-import { Types } from "mongoose";
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
+// src/interfaces/booking.interface.ts
 
-export type TBooking = {
-  customer: Types.ObjectId;
-  service: Types.ObjectId;
-  slot: Types.ObjectId;
-  vehicleType:
-    | "car"
-    | "truck"
-    | "SUV"
-    | "van"
-    | "motorcycle"
-    | "bus"
-    | "electricVehicle"
-    | "hybridVehicle"
-    | "bicycle"
-    | "tractor";
-  vehicleBrand: string;
-  vehicleModel: string;
-  manufacturingYear: number;
-  registrationPlate: string;
-};
+import { Types } from 'mongoose'
+
+export type VehicleType =
+  | 'car'
+  | 'truck'
+  | 'SUV'
+  | 'van'
+  | 'motorcycle'
+  | 'bus'
+  | 'electricVehicle'
+  | 'hybridVehicle'
+  | 'bicycle'
+  | 'tractor'
+
+export interface TBooking {
+  customer: Types.ObjectId
+  service: Types.ObjectId
+  slot: Types.ObjectId
+  vehicleType: VehicleType
+  vehicleBrand: string
+  vehicleModel: string
+  manufacturingYear: number
+  registrationPlate: string
+  status: string
+  tran_id: string
+}
+
+export interface TBookingRequest {
+  serviceId: Types.ObjectId
+  slotId: Types.ObjectId
+  vehicleType: VehicleType
+  vehicleBrand: string
+  vehicleModel: string
+  manufacturingYear: number
+  registrationPlate: string
+  amount: string
+}

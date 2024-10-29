@@ -1,15 +1,11 @@
-import { Schema } from 'mongoose';
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
+// src/interfaces/slot.interface.ts
+import { Types } from 'mongoose'
 
-export type TSlot = {
-  serviceId: Schema.Types.ObjectId;
-  date: Date;
-  startTime: string;
-  endTime: string;
-  transactionId?: string;
-  isBooked: 'available' | 'booked' | 'canceled';
-};
-
-export type GetSlotQuery = {
-  serviceId?: string;
-  date?: string;
-};
+export interface TSlot {
+  service: Types.ObjectId
+  date: Date
+  startTime: string
+  endTime: string
+  isBooked: 'booked' | 'available' | 'canceled'
+}
